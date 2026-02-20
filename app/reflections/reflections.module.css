@@ -1,0 +1,1456 @@
+/* =====================================================================
+   reflections.module.css
+   Grey theme — no dark, no gold, no gradients
+   New diagram styles appended at bottom
+   All selectors scoped under .root
+   ===================================================================== */
+
+/* ── Custom Properties ── */
+.root {
+  --bg-primary: #F4F5F7;
+  --bg-secondary: #ECEFF2;
+  --bg-deep: #E2E6EA;
+  --text-primary: #1C1F24;
+  --text-secondary: #4B5563;
+  --text-muted: #6B7280;
+  --font-display: Georgia, serif;
+  --font-body: sans-serif;
+  --max-w: 1280px;
+  --section-pad: clamp(100px, 11vw, 160px);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.14);
+
+  box-sizing: border-box;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 300;
+  line-height: 1.78;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+.root *,
+.root *::before,
+.root *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.root section,
+.root .page-epigram {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Utilities ── */
+.root .container {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 80px);
+}
+
+.root .gold-line {
+  display: block;
+  width: 40px;
+  height: 1px;
+  background: var(--border-strong);
+  margin: 16px 0 28px 0;
+}
+
+.root .section-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-bottom: 14px;
+  display: block;
+}
+
+.root .section-title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 300;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.root .section-subtitle {
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  font-weight: 300;
+  margin-top: 6px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.root .section-index {
+  position: absolute;
+  top: clamp(28px, 3.5vw, 48px);
+  left: clamp(20px, 5vw, 80px);
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.35em;
+  color: var(--border-strong);
+  font-weight: 400;
+  user-select: none;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ── Reveal Animations ── */
+.root .reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.root .reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.root .reveal-delay-1 { transition-delay: 0.1s; }
+.root .reveal-delay-2 { transition-delay: 0.2s; }
+.root .reveal-delay-3 { transition-delay: 0.3s; }
+.root .reveal-delay-4 { transition-delay: 0.4s; }
+.root .reveal-delay-5 { transition-delay: 0.5s; }
+
+/* ── Framework Lines ── */
+.root .framework-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  padding-bottom: 4px;
+}
+
+.root .framework-line-center {
+  justify-content: center;
+}
+
+.root .framework-term {
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 300;
+  white-space: nowrap;
+}
+
+.root .framework-sep {
+  font-size: 9px;
+  color: var(--border-strong);
+  margin: 0 9px;
+  font-weight: 300;
+  flex-shrink: 0;
+}
+
+/* ── Observation Blocks ── */
+.root .obs-block {
+  margin-top: 56px;
+  padding: 24px 28px;
+  border-left: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+}
+
+.root .obs-label {
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.root .obs-text {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  font-weight: 300;
+  font-style: italic;
+  max-width: 640px;
+}
+
+.root .obs-block-center {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 640px;
+  border-left: none;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  padding: 28px 0 0;
+  background: transparent;
+}
+
+.root .obs-block-center .obs-text {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.root .cross-connect {
+  margin-top: 20px;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-weight: 300;
+  letter-spacing: 0.03em;
+  line-height: 1.6;
+}
+
+/* ── Diagram Container (fallback) ── */
+.root .diagram-container {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border);
+  background: var(--bg-secondary);
+}
+
+/* ══════════════════════════════════════════════════
+   HERO
+══════════════════════════════════════════════════ */
+.root .hero {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.root .hero-left {
+  padding: clamp(100px, 12vw, 160px) clamp(20px, 5vw, 80px) clamp(80px, 10vw, 120px);
+  position: relative;
+  z-index: 2;
+}
+
+.root .hero-eyebrow { display: none; }
+.root .hero-divider  { display: none; }
+
+.root .hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(52px, 7vw, 96px);
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 18px;
+  opacity: 0;
+  animation: fadeUp 0.9s 0.2s forwards;
+}
+
+.root .hero-subtitle {
+  font-family: var(--font-display);
+  font-size: clamp(16px, 2.5vw, 22px);
+  font-weight: 300;
+  font-style: italic;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fadeUp 0.9s 0.35s forwards;
+}
+
+.root .hero-body {
+  font-size: clamp(14px, 1.5vw, 16px);
+  color: var(--text-secondary);
+  max-width: 520px;
+  line-height: 2;
+  opacity: 0;
+  animation: fadeUp 0.9s 0.5s forwards;
+}
+
+.root .hero-body p + p { margin-top: 18px; }
+
+.root .hero-body .highlight {
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+.root .hero-meta {
+  display: flex;
+  align-items: center;
+  margin-top: 40px;
+  opacity: 0;
+  animation: fadeUp 0.9s 0.65s forwards;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.root .hero-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.root .hero-meta-label {
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.root .hero-meta-value {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-weight: 300;
+}
+
+.root .hero-meta-dot {
+  width: 1px;
+  height: 10px;
+  background: var(--border-strong);
+  margin: 0 14px;
+  flex-shrink: 0;
+}
+
+.root .hero-right {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Portrait */
+.root .portrait-frame {
+  position: relative;
+  width: min(380px, 85%);
+  opacity: 0;
+  animation: fadeIn 1s 0.4s forwards;
+}
+
+.root .portrait-frame::before,
+.root .portrait-frame::after { display: none; }
+
+.root .portrait-img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: var(--bg-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.root .portrait-placeholder {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-deep);
+  overflow: hidden;
+}
+
+.root .portrait-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.root .portrait-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.root .portrait-hint {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.root .portrait-caption {
+  margin-top: 14px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+
+.root .scroll-indicator,
+.root .scroll-line,
+.root .scroll-text { display: none; }
+
+/* Keyframes */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════════
+   SECTION 01 — WHAT IS LIFE
+══════════════════════════════════════════════════ */
+.root .life {
+  background: var(--bg-secondary);
+  padding: var(--section-pad) 0;
+  position: relative;
+}
+
+.root .life::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+.root .life-header { margin-bottom: 72px; }
+.root .life-header .framework-line { margin-top: 0; }
+
+.root .life-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: start;
+}
+
+.root .life-blocks {
+  display: flex;
+  flex-direction: column;
+}
+
+.root .life-block {
+  padding: 28px 0 28px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: default;
+  position: relative;
+  transition: padding-left 0.3s ease;
+}
+
+.root .life-block:first-child { border-top: 1px solid var(--border); }
+
+.root .life-block::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%; bottom: 20%;
+  width: 1px;
+  background: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.root .life-block:hover::before { opacity: 0.3; }
+.root .life-block:hover { padding-left: 20px; }
+
+.root .life-block-number {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.18em;
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.root .life-block-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.root .life-block-text {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.85;
+  max-width: 400px;
+}
+
+.root .life-visual {
+  position: sticky;
+  top: 100px;
+  aspect-ratio: 4 / 5;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.root .life-visual-label {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ══════════════════════════════════════════════════
+   SECTION 02 — EVOLUTION OF INTELLIGENCE
+══════════════════════════════════════════════════ */
+.root .evolution {
+  padding: var(--section-pad) 0;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.root .evolution-header { text-align: center; margin-bottom: 56px; }
+.root .evolution-header .gold-line { margin: 16px auto 28px; }
+.root .evolution-header .framework-line { margin-top: 0; }
+
+/* Desktop timeline */
+.root .timeline-wrapper {
+  position: relative;
+  overflow-x: auto;
+  padding-bottom: 20px;
+}
+
+.root .timeline {
+  display: flex;
+  min-width: max-content;
+  position: relative;
+  padding: 60px clamp(20px, 5vw, 80px) 80px;
+}
+
+.root .timeline::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  height: 1px;
+  background: var(--border-strong);
+  transform: translateY(-50%);
+}
+
+.root .timeline-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 1;
+  min-width: 210px;
+  cursor: pointer;
+}
+
+.root .node-dot-wrapper {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.root .node-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 1px solid var(--text-muted);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.root .timeline-node:hover .node-dot,
+.root .timeline-node.active .node-dot {
+  background: var(--text-secondary);
+  border-color: var(--text-secondary);
+}
+
+.root .node-year {
+  margin-top: 14px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.root .node-title {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: center;
+  max-width: 130px;
+  line-height: 1.2;
+}
+
+.root .node-card {
+  position: absolute;
+  bottom: calc(100% + 48px);
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  width: 240px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-strong);
+  padding: 22px 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 10;
+}
+
+.root .node-card::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px; height: 10px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.root .timeline-node:hover .node-card,
+.root .timeline-node.active .node-card {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.root .node-card-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.root .node-card-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+
+/* Mobile timeline */
+.root .timeline-mobile {
+  display: none;
+  flex-direction: column;
+  position: relative;
+  padding-left: 40px;
+}
+
+.root .timeline-mobile::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 16px;
+  width: 1px;
+  background: var(--border-strong);
+}
+
+.root .mobile-node {
+  position: relative;
+  padding: 0 0 48px 32px;
+}
+
+.root .mobile-node::before {
+  content: '';
+  position: absolute;
+  left: -25px; top: 5px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 1px solid var(--text-muted);
+}
+
+.root .mobile-node-year {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.root .mobile-node-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.root .mobile-node-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.78;
+}
+
+/* ══════════════════════════════════════════════════
+   SECTION 03 — REALITY & PERCEPTION
+══════════════════════════════════════════════════ */
+.root .reality {
+  background: var(--bg-secondary);
+  padding: var(--section-pad) 0;
+  position: relative;
+}
+
+.root .reality::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+.root .reality-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: start;
+}
+
+.root .reality-left { position: relative; }
+
+.root .reality-quote {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 52px);
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.35;
+  color: var(--text-primary);
+  position: relative;
+}
+
+.root .reality-quote::before {
+  content: '\201C';
+  display: block;
+  font-size: 100px;
+  color: var(--text-muted);
+  opacity: 0.1;
+  line-height: 0.6;
+  margin-bottom: 20px;
+  font-family: var(--font-display);
+}
+
+.root .reality-quote-attr {
+  margin-top: 28px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* Expand Cards */
+.root .cards-micro-label {
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.root .cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.root .expand-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.root .expand-card:hover,
+.root .expand-card.open { border-color: var(--border-strong); }
+
+.root .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px;
+}
+
+.root .card-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.root .card-icon {
+  width: 18px; height: 18px;
+  position: relative;
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+
+.root .expand-card.open .card-icon { transform: rotate(45deg); }
+
+.root .card-icon::before,
+.root .card-icon::after {
+  content: '';
+  position: absolute;
+  background: var(--text-muted);
+  border-radius: 1px;
+}
+
+.root .card-icon::before {
+  width: 10px; height: 1px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.root .card-icon::after {
+  width: 1px; height: 10px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.root .card-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.root .expand-card.open .card-body { max-height: 360px; }
+
+.root .card-body-inner {
+  padding: 16px 22px 24px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.88;
+  border-top: 1px solid var(--border);
+}
+
+/* ══════════════════════════════════════════════════
+   SECTION 04 — RELIGION & MEANING
+══════════════════════════════════════════════════ */
+.root .religion {
+  padding: var(--section-pad) 0;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.root .religion-header { text-align: center; margin-bottom: 72px; }
+.root .religion-header .gold-line { margin: 16px auto 0; }
+.root .religion-header .framework-line { margin-top: 0; }
+
+.root .religion-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+.root .religion-col {
+  background: var(--bg-primary);
+  padding: 52px 40px;
+  position: relative;
+  transition: background 0.25s ease;
+}
+
+.root .religion-col:hover { background: var(--bg-secondary); }
+
+.root .religion-col-number {
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-weight: 300;
+  color: var(--border-strong);
+  line-height: 1;
+  margin-bottom: 14px;
+}
+
+.root .religion-col-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
+.root .religion-col-divider {
+  width: 28px; height: 1px;
+  background: var(--border-strong);
+  margin-bottom: 18px;
+}
+
+.root .religion-col-text {
+  font-size: 14.5px;
+  color: var(--text-secondary);
+  line-height: 1.88;
+}
+
+/* ══════════════════════════════════════════════════
+   SECTION 05 — CONSCIOUSNESS
+══════════════════════════════════════════════════ */
+.root .consciousness {
+  background: var(--bg-deep);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.root .consciousness-inner {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 800px;
+  padding: 0 clamp(20px, 5vw, 80px);
+}
+
+.root .consciousness-label {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 72px;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.root .consciousness-label.visible { opacity: 1; }
+
+.root .consciousness-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.root .c-line {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 5vw, 58px);
+  font-weight: 300;
+  color: var(--text-primary);
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.9s ease, transform 0.9s ease;
+}
+
+.root .c-line.visible { opacity: 1; transform: translateY(0); }
+
+.root .c-line span {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.root .c-line:last-child { color: var(--text-primary); }
+
+.root .c-line:nth-child(1) { transition-delay: 0s; }
+.root .c-line:nth-child(2) { transition-delay: 0.12s; }
+.root .c-line:nth-child(3) { transition-delay: 0.24s; }
+.root .c-line:nth-child(4) { transition-delay: 0.36s; }
+
+.root .consciousness-footnote {
+  margin-top: 72px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 1s 0.8s ease;
+}
+
+.root .consciousness-footnote.visible { opacity: 1; }
+
+.root .consciousness .section-index { color: var(--border-strong); }
+.root .consciousness .framework-line .framework-term { color: var(--text-muted); opacity: 0.65; }
+.root .consciousness .framework-line .framework-sep { opacity: 0.5; }
+
+/* ══════════════════════════════════════════════════
+   SECTION 06 — SYSTEM VIEW
+══════════════════════════════════════════════════ */
+.root .sysview {
+  padding: var(--section-pad) 0;
+  background: var(--bg-secondary);
+  position: relative;
+  border-top: 1px solid var(--border);
+}
+
+.root .sysview-header { margin-bottom: 60px; }
+
+.root .sysview-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: start;
+}
+
+.root .sysview-chain { display: flex; flex-direction: column; }
+
+.root .sysview-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.root .sysview-row:first-child { border-top: 1px solid var(--border); }
+.root .sysview-row-indent { padding-left: 28px; }
+
+.root .sysview-arrow {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-right: 14px;
+  margin-top: 3px;
+  flex-shrink: 0;
+  font-weight: 300;
+}
+
+.root .sysview-term {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.root .sysview-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 300;
+  margin-top: 4px;
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+}
+
+.root .sysview-right { padding-top: 8px; }
+
+.root .sysview-conclusion {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.5vw, 28px);
+  font-weight: 300;
+  font-style: italic;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-bottom: 32px;
+}
+
+.root .sysview-detail {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.85;
+  font-weight: 300;
+  max-width: 400px;
+}
+
+.root .sysview-detail + .sysview-detail { margin-top: 16px; }
+
+/* ══════════════════════════════════════════════════
+   SECTION 07 — OPEN QUESTIONS
+══════════════════════════════════════════════════ */
+.root .questions {
+  padding: var(--section-pad) 0;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.root .questions::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+.root .questions-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.root .questions-inner .section-title { margin-bottom: 6px; }
+.root .questions-inner .section-subtitle { margin-bottom: 0; }
+.root .questions-inner .gold-line { margin: 16px auto 24px; }
+
+.root .questions-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 72px;
+}
+
+.root .q-item {
+  border-bottom: 1px solid var(--border);
+  padding: 22px 0;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+}
+
+.root .q-item:first-child { border-top: 1px solid var(--border); }
+
+.root .q-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bg-secondary);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.root .q-item:hover::before { transform: scaleX(1); }
+
+.root .q-text {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 300;
+  color: var(--text-primary);
+  position: relative;
+  z-index: 1;
+  transition: padding-left 0.35s ease;
+}
+
+.root .q-item:hover .q-text { padding-left: 6px; }
+
+.root .closing-line {
+  font-family: var(--font-display);
+  font-size: clamp(13px, 1.8vw, 16px);
+  font-style: italic;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+.root .closing-line::before {
+  content: '—';
+  margin-right: 10px;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+/* ══════════════════════════════════════════════════
+   PAGE EPIGRAM
+══════════════════════════════════════════════════ */
+.root .page-epigram {
+  padding: 52px clamp(20px, 5vw, 80px);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.root .page-epigram-rule {
+  width: 32px; height: 1px;
+  background: var(--border-strong);
+}
+
+.root .page-epigram-text {
+  font-family: var(--font-display);
+  font-size: clamp(12px, 1.4vw, 14px);
+  font-style: italic;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+/* ══════════════════════════════════════════════════
+   DIAGRAM A — LIFE SYSTEM FLOW
+   Vertical node chain in life-visual container
+══════════════════════════════════════════════════ */
+.root .flow-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  height: 100%;
+  padding: 28px 24px 56px 24px;
+  gap: 0;
+}
+
+.root .flow-node-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.root .flow-node {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.root .flow-node:hover {
+  background: var(--bg-secondary);
+}
+
+.root .flow-node-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.root .flow-node:hover .flow-node-circle {
+  border-color: var(--text-muted);
+  background: var(--bg-secondary);
+}
+
+.root .flow-node-index {
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.root .flow-node-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.root .flow-node-label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.root .flow-node-sub {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+}
+
+.root .flow-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-left: 26px; /* aligns with circle center (36/2 + 8px padding) */
+  gap: 0;
+}
+
+.root .flow-connector-line {
+  width: 1px;
+  height: 14px;
+  background: var(--border-strong);
+}
+
+.root .flow-connector-arrow {
+  color: var(--border-strong);
+  display: block;
+}
+
+/* ══════════════════════════════════════════════════
+   DIAGRAM B — EVOLUTION BRANCHING SVG
+══════════════════════════════════════════════════ */
+.root .evo-diagram-wrap {
+  max-width: 380px;
+  margin: 0 auto 60px;
+  padding: 0 clamp(20px, 5vw, 80px);
+}
+
+.root .evo-svg {
+  overflow: visible;
+  display: block;
+}
+
+/* Hover on SVG node groups */
+.root .evo-node-g {
+  cursor: default;
+}
+
+.root .evo-node-g:hover .evo-circle {
+  fill: var(--bg-deep);
+  stroke: var(--text-secondary);
+}
+
+.root .evo-node-g:hover .evo-label {
+  fill: var(--text-secondary);
+}
+
+/* ══════════════════════════════════════════════════
+   DIAGRAM C — PREDICTIVE STACK
+══════════════════════════════════════════════════ */
+.root .pred-stack {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.root .pred-stack-label {
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.root .pred-layer-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.root .pred-layer {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  padding: 10px 16px;
+  width: 100%;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.root .pred-layer:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-secondary);
+}
+
+.root .pred-layer-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.root .pred-layer-note {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.root .pred-arrow {
+  padding-left: 22px;
+  color: var(--text-muted);
+  display: flex;
+}
+
+/* ══════════════════════════════════════════════════
+   DIAGRAM D — CONSCIOUSNESS RECURSIVE LOOP
+══════════════════════════════════════════════════ */
+.root .c-loop-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 56px;
+}
+
+.root .c-loop-svg {
+  overflow: visible;
+}
+
+/* Slow rotation on the dashed orbit track */
+.root .c-loop-track {
+  transform-origin: 120px 120px;
+  animation: loopSpin 18s linear infinite;
+}
+
+@keyframes loopSpin {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -453; } /* 2π × 72 ≈ 452.4 */
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .root .c-loop-track { animation: none; }
+  .root .reveal {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .root .hero {
+    grid-template-columns: 1fr;
+    min-height: unset;
+  }
+
+  .root .hero-left {
+    padding: 120px clamp(20px, 5vw, 40px) 40px;
+  }
+
+  .root .hero-right {
+    height: 60vw;
+    min-height: 280px;
+    max-height: 420px;
+  }
+
+  .root .portrait-frame { width: 60%; }
+
+  .root .life-grid,
+  .root .reality-grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .root .life-visual { display: none; }
+
+  .root .religion-grid { grid-template-columns: 1fr; gap: 1px; }
+
+  .root .timeline-wrapper { display: none; }
+  .root .timeline-mobile  { display: flex; }
+
+  .root .cards-grid { grid-template-columns: 1fr; }
+
+  .root .sysview-inner { grid-template-columns: 1fr; gap: 48px; }
+
+  .root .obs-block { margin-top: 40px; }
+
+  /* Stack diagram hides on mobile (covered by mobile timeline) */
+  .root .evo-diagram-wrap { display: none; }
+
+  /* Pred stack goes full width on mobile */
+  .root .pred-stack { width: 100%; }
+
+  /* Consciousness loop scales down */
+  .root .c-loop-wrap svg {
+    width: 180px;
+    height: 180px;
+  }
+}
+
+@media (max-width: 600px) {
+  .root .religion-col { padding: 32px 20px; }
+  .root .reality-quote::before { font-size: 70px; }
+}
