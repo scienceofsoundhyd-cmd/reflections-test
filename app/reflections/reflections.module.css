@@ -26,7 +26,7 @@
   font-family: var(--font-body);
   font-weight: 300;
   line-height: 1.78;
-  overflow-x: hidden;
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   position: relative;
 }
@@ -911,7 +911,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .root .consciousness-inner {
@@ -1411,26 +1411,12 @@
   }
 
   .root .hero-right {
-    width: 100%;
-    height: auto;
-    min-height: unset;
-    max-height: unset;
-    padding: 24px clamp(20px, 5vw, 40px) 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    height: 60vw;
+    min-height: 280px;
+    max-height: 420px;
   }
 
-  .root .portrait-frame {
-    width: min(240px, 60%);
-  }
-
-  /* Ensure portrait image container has a defined height on mobile */
-  .root .portrait-img {
-    aspect-ratio: 3 / 4;
-    width: 100%;
-    height: auto;
-  }
+  .root .portrait-frame { width: 60%; }
 
   .root .life-grid,
   .root .reality-grid {
@@ -1468,3 +1454,81 @@
   .root .religion-col { padding: 32px 20px; }
   .root .reality-quote::before { font-size: 70px; }
 }
+
+/* ══════════════════════════════════════════════════
+   CONCEPT COLOUR OVERRIDES — plain hex, no color-mix
+   Each section gets its own accent applied to labels,
+   dividers, framework terms and key interactive states.
+══════════════════════════════════════════════════ */
+
+/* ── Section 01 · What is Life — Sage Green ── */
+.root .life .section-label   { color: #4A7A56; }
+.root .life .section-subtitle { color: #5A8A66; }
+.root .life .gold-line        { background: #4A7A56; opacity: 0.5; }
+.root .life .framework-term   { color: #4A7A56; }
+.root .life .framework-sep    { color: #4A7A56; opacity: 0.4; }
+.root .life-block-number      { color: #5A8A66; }
+.root .life-block:hover       { background: #EAF3EB; }
+.root .life-block:hover::before { background: #4A7A56; opacity: 1; }
+.root .flow-node:hover        { background: #EAF3EB; }
+.root .flow-node:hover .flow-node-circle {
+  border-color: #4A7A56;
+  background: #D6EDD9;
+}
+.root .flow-node:hover .flow-node-index { color: #4A7A56; }
+
+/* ── Section 02 · Evolution — Steel Blue ── */
+.root .evolution .section-label   { color: #3A5E8C; }
+.root .evolution .section-subtitle { color: #4A6E9C; }
+.root .evolution .gold-line        { background: #3A5E8C; opacity: 0.5; }
+.root .evolution .framework-term   { color: #3A5E8C; }
+.root .evolution .framework-sep    { color: #3A5E8C; opacity: 0.4; }
+.root .mobile-node::before         { border-color: #3A5E8C; }
+.root .timeline-node:hover .node-dot,
+.root .timeline-node.active .node-dot {
+  background: #3A5E8C;
+  border-color: #3A5E8C;
+}
+
+/* ── Section 03 · Reality & Perception — Soft Violet ── */
+.root .reality .section-label    { color: #5E4480; }
+.root .reality .section-subtitle  { color: #6E5490; }
+.root .reality .gold-line         { background: #5E4480; opacity: 0.5; }
+.root .reality .framework-term    { color: #5E4480; }
+.root .reality .framework-sep     { color: #5E4480; opacity: 0.4; }
+.root .expand-card:hover          { border-color: #B8A0D4; }
+.root .expand-card.open           { border-color: #9A80C0; }
+.root .expand-card.open .card-body { background: #F2EEF8; }
+.root .cards-micro-label          { color: #5E4480; }
+
+/* ── Section 04 · Religion & Meaning — Warm Amber ── */
+.root .religion .section-label    { color: #8A5E2A; }
+.root .religion .section-subtitle  { color: #9A6E3A; }
+.root .religion .gold-line         { background: #8A5E2A; opacity: 0.5; }
+.root .religion .framework-term    { color: #8A5E2A; }
+.root .religion .framework-sep     { color: #8A5E2A; opacity: 0.4; }
+.root .religion-col-number         { color: #C8A070; }
+.root .religion-col:hover          { background: #FBF4EA; }
+
+/* ── Section 05 · Consciousness — Deep Slate Blue ── */
+.root .consciousness .section-label { color: #2E4D6A; }
+.root .consciousness .gold-line      { background: #2E4D6A; opacity: 0.45; }
+.root .consciousness                 { background: #D8E5EF; }
+
+/* ── Section 06 · System View — Teal-Grey ── */
+.root .sysview .section-label    { color: #3D6B58; }
+.root .sysview .section-subtitle  { color: #4D7B68; }
+.root .sysview .gold-line         { background: #3D6B58; opacity: 0.5; }
+.root .sysview-arrow              { color: #3D6B58; }
+.root .sysview-row {
+  transition: background 0.2s ease;
+}
+.root .sysview-row:hover          { background: #EBF4F0; }
+
+/* ── Section 07 · Open Questions — Dusty Rose ── */
+.root .questions .section-label    { color: #7A3D3D; }
+.root .questions .section-subtitle  { color: #8A4D4D; }
+.root .questions .gold-line         { background: #7A3D3D; opacity: 0.5; }
+.root .questions .framework-term    { color: #7A3D3D; }
+.root .questions .framework-sep     { color: #7A3D3D; opacity: 0.4; }
+.root .q-item:hover::before         { background: #F5E8E8; }
