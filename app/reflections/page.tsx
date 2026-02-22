@@ -76,8 +76,7 @@ function EvoBranchDiagram() {
         ))}
 
         {EVO_NODES.map((node, i) => (
-          <g key={node.label} className={styles["evo-node-g"]}>
-            <title>{node.year} — {node.desc}</title>
+          <g key={node.label} className={styles["evo-node-g"]} aria-label={`${node.label}: ${node.year} — ${node.desc}`}>
             <rect
               x={EVOx[i] - 10} y={EVOy[i] - 10}
               width={SVG_W - EVOx[i]}
@@ -321,8 +320,9 @@ export default function ReflectionsPage() {
     expandCards.forEach((card) => card.addEventListener("click", handleCardClick));
 
     const heroRight = document.querySelector("[data-hero-right]") as HTMLElement | null;
+    const isMobile = window.matchMedia("(max-width: 900px)").matches;
     const handleParallax = () => {
-      if (!heroRight) return;
+      if (!heroRight || isMobile) return;
       const scrollY = window.scrollY;
       if (scrollY < window.innerHeight) {
         heroRight.style.transform = `translateY(${scrollY * 0.04}px)`;

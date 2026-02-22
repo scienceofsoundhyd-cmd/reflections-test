@@ -325,7 +325,7 @@
 
 .root .hero-right {
   position: relative;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1411,12 +1411,26 @@
   }
 
   .root .hero-right {
-    height: 60vw;
-    min-height: 280px;
-    max-height: 420px;
+    width: 100%;
+    height: auto;
+    min-height: unset;
+    max-height: unset;
+    padding: 24px clamp(20px, 5vw, 40px) 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .root .portrait-frame { width: 60%; }
+  .root .portrait-frame {
+    width: min(240px, 60%);
+  }
+
+  /* Ensure portrait image container has a defined height on mobile */
+  .root .portrait-img {
+    aspect-ratio: 3 / 4;
+    width: 100%;
+    height: auto;
+  }
 
   .root .life-grid,
   .root .reality-grid {
