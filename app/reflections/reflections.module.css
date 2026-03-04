@@ -108,8 +108,8 @@
 
 /* ── Reveal Animations ── */
 .root .reveal {
-  opacity: 0;
-  transform: translateY(20px);
+  opacity: 1;
+  transform: none;
   transition: opacity 0.7s ease, transform 0.7s ease;
 }
 
@@ -1172,7 +1172,6 @@
 
 /* ══════════════════════════════════════════════════
    DIAGRAM A — LIFE SYSTEM FLOW
-   Vertical node chain in life-visual container
 ══════════════════════════════════════════════════ */
 .root .flow-diagram {
   display: flex;
@@ -1255,7 +1254,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-left: 26px; /* aligns with circle center (36/2 + 8px padding) */
+  padding-left: 26px;
   gap: 0;
 }
 
@@ -1284,7 +1283,6 @@
   display: block;
 }
 
-/* Hover on SVG node groups */
 .root .evo-node-g {
   cursor: default;
 }
@@ -1376,7 +1374,6 @@
   overflow: visible;
 }
 
-/* Slow rotation on the dashed orbit track */
 .root .c-loop-track {
   transform-origin: 120px 120px;
   animation: loopSpin 18s linear infinite;
@@ -1384,10 +1381,9 @@
 
 @keyframes loopSpin {
   from { stroke-dashoffset: 0; }
-  to   { stroke-dashoffset: -453; } /* 2π × 72 ≈ 452.4 */
+  to   { stroke-dashoffset: -453; }
 }
 
-/* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .root .c-loop-track { animation: none; }
   .root .reveal {
@@ -1437,13 +1433,10 @@
 
   .root .obs-block { margin-top: 40px; }
 
-  /* Stack diagram hides on mobile (covered by mobile timeline) */
   .root .evo-diagram-wrap { display: none; }
 
-  /* Pred stack goes full width on mobile */
   .root .pred-stack { width: 100%; }
 
-  /* Consciousness loop scales down */
   .root .c-loop-wrap svg {
     width: 180px;
     height: 180px;
@@ -1456,12 +1449,10 @@
 }
 
 /* ══════════════════════════════════════════════════
-   CONCEPT COLOUR OVERRIDES — plain hex, no color-mix
-   Each section gets its own accent applied to labels,
-   dividers, framework terms and key interactive states.
+   CONCEPT COLOUR OVERRIDES
 ══════════════════════════════════════════════════ */
 
-/* ── Section 01 · What is Life — Sage Green ── */
+/* Section 01 · Life — Sage Green */
 .root .life .section-label   { color: #4A7A56; }
 .root .life .section-subtitle { color: #5A8A66; }
 .root .life .gold-line        { background: #4A7A56; opacity: 0.5; }
@@ -1477,7 +1468,7 @@
 }
 .root .flow-node:hover .flow-node-index { color: #4A7A56; }
 
-/* ── Section 02 · Evolution — Steel Blue ── */
+/* Section 02 · Evolution — Steel Blue */
 .root .evolution .section-label   { color: #3A5E8C; }
 .root .evolution .section-subtitle { color: #4A6E9C; }
 .root .evolution .gold-line        { background: #3A5E8C; opacity: 0.5; }
@@ -1490,7 +1481,7 @@
   border-color: #3A5E8C;
 }
 
-/* ── Section 03 · Reality & Perception — Soft Violet ── */
+/* Section 03 · Reality — Soft Violet */
 .root .reality .section-label    { color: #5E4480; }
 .root .reality .section-subtitle  { color: #6E5490; }
 .root .reality .gold-line         { background: #5E4480; opacity: 0.5; }
@@ -1501,7 +1492,7 @@
 .root .expand-card.open .card-body { background: #F2EEF8; }
 .root .cards-micro-label          { color: #5E4480; }
 
-/* ── Section 04 · Religion & Meaning — Warm Amber ── */
+/* Section 04 · Religion — Warm Amber */
 .root .religion .section-label    { color: #8A5E2A; }
 .root .religion .section-subtitle  { color: #9A6E3A; }
 .root .religion .gold-line         { background: #8A5E2A; opacity: 0.5; }
@@ -1510,12 +1501,12 @@
 .root .religion-col-number         { color: #C8A070; }
 .root .religion-col:hover          { background: #FBF4EA; }
 
-/* ── Section 05 · Consciousness — Deep Slate Blue ── */
+/* Section 05 · Consciousness — Deep Slate Blue */
 .root .consciousness .section-label { color: #2E4D6A; }
 .root .consciousness .gold-line      { background: #2E4D6A; opacity: 0.45; }
 .root .consciousness                 { background: #D8E5EF; }
 
-/* ── Section 06 · System View — Teal-Grey ── */
+/* Section 06 · System View — Teal-Grey */
 .root .sysview .section-label    { color: #3D6B58; }
 .root .sysview .section-subtitle  { color: #4D7B68; }
 .root .sysview .gold-line         { background: #3D6B58; opacity: 0.5; }
@@ -1525,10 +1516,2581 @@
 }
 .root .sysview-row:hover          { background: #EBF4F0; }
 
-/* ── Section 07 · Open Questions — Dusty Rose ── */
+/* Section 07 · Open Questions — Dusty Rose */
 .root .questions .section-label    { color: #7A3D3D; }
 .root .questions .section-subtitle  { color: #8A4D4D; }
 .root .questions .gold-line         { background: #7A3D3D; opacity: 0.5; }
 .root .questions .framework-term    { color: #7A3D3D; }
 .root .questions .framework-sep     { color: #7A3D3D; opacity: 0.4; }
 .root .q-item:hover::before         { background: #F5E8E8; }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   DARK THEME — CLEAN OVERRIDE
+   Applied after all original styles. Uses CSS variable override so
+   every var() call auto-resolves to dark values. Only hardcoded
+   colors (section accent overrides) need explicit targeting.
+   NO padding or layout changes — structure is untouched.
+══════════════════════════════════════════════════════════════════ */
+
+/* ── 1 · Dark page base ────────────────────────────────────────── */
+:global(body) {
+  background: #080c18;
+}
+
+/* ── 2 · Override all CSS variables at root — fixes every var() ── */
+.root {
+  background: transparent;
+
+  --bg-primary:    transparent;
+  --bg-secondary:  rgba(255,255,255,0.0);
+  --bg-deep:       rgba(255,255,255,0.0);
+  --text-primary:  #e2e8f8;
+  --text-secondary:#a4b4d4;
+  --text-muted:    #6878a0;
+  --border:        rgba(90, 130, 210, 0.15);
+  --border-strong: rgba(90, 130, 210, 0.28);
+  --font-display:  Georgia, serif;
+  --font-body:     sans-serif;
+}
+
+/* ── 3 · All sections transparent ─────────────────────────────── */
+.root .hero,
+.root .life,
+.root .evolution,
+.root .reality,
+.root .religion,
+.root .consciousness,
+.root .sysview,
+.root .questions,
+.root .page-epigram {
+  background: transparent !important;
+}
+
+/* ── 4 · Section dividers — visible on dark ────────────────────── */
+.root .life::before,
+.root .reality::before,
+.root .questions::before {
+  background: rgba(90, 130, 210, 0.18);
+}
+.root .sysview {
+  border-top-color: rgba(90, 130, 210, 0.18);
+}
+
+/* ── 5 · Text containers — frosted glass panels behind text ─────
+   Only wrapping containers, not layout children. Inset::before
+   pseudo-element so it doesn't change sizing/padding of the element.
+─────────────────────────────────────────────────────────────────── */
+
+/* Hero left text column */
+.root .hero-left {
+  position: relative;
+  z-index: 2;
+}
+.root .hero-left::after {
+  content: '';
+  position: absolute;
+  inset: -24px -36px;
+  background: rgba(4, 7, 18, 0.62);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 6px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Section headers (label + title + framework line area) */
+.root .life-header,
+.root .evolution-header,
+.root .religion-header,
+.root .sysview-header {
+  position: relative;
+  z-index: 2;
+}
+.root .life-header::after,
+.root .evolution-header::after,
+.root .religion-header::after,
+.root .sysview-header::after {
+  content: '';
+  position: absolute;
+  inset: -20px -28px;
+  background: rgba(4, 7, 18, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 4px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Reality left (blockquote + pred stack) */
+.root .reality-left {
+  position: relative;
+  z-index: 2;
+}
+.root .reality-left::after {
+  content: '';
+  position: absolute;
+  inset: -20px -24px;
+  background: rgba(4, 7, 18, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 4px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Reality right (cards column) */
+.root .reality-right {
+  position: relative;
+  z-index: 2;
+}
+.root .reality-right::after {
+  content: '';
+  position: absolute;
+  inset: -20px -24px;
+  background: rgba(4, 7, 18, 0.48);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 4px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Consciousness inner */
+.root .consciousness-inner {
+  position: relative;
+  z-index: 2;
+}
+.root .consciousness-inner::after {
+  content: '';
+  position: absolute;
+  inset: -32px -40px;
+  background: rgba(4, 7, 18, 0.60);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 6px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Sysview right column */
+.root .sysview-right {
+  position: relative;
+  z-index: 2;
+}
+.root .sysview-right::after {
+  content: '';
+  position: absolute;
+  inset: -20px -24px;
+  background: rgba(4, 7, 18, 0.52);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 4px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Questions inner */
+.root .questions-inner {
+  position: relative;
+  z-index: 2;
+}
+.root .questions-inner::after {
+  content: '';
+  position: absolute;
+  inset: -20px -28px;
+  background: rgba(4, 7, 18, 0.58);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 4px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ── 6 · Life blocks list ──────────────────────────────────────── */
+.root .life-blocks {
+  position: relative;
+  z-index: 2;
+}
+.root .life-blocks::after {
+  content: '';
+  position: absolute;
+  inset: 0 -24px;
+  background: rgba(4, 7, 18, 0.52);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 4px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.root .life-block {
+  border-bottom-color: rgba(90, 130, 210, 0.14);
+}
+.root .life-block:first-child {
+  border-top-color: rgba(90, 130, 210, 0.14);
+}
+.root .life-block:hover {
+  background: rgba(14, 22, 50, 0.65);
+  padding-left: 20px;
+}
+.root .life-block:hover::before {
+  background: #6ec878;
+  opacity: 0.7;
+}
+.root .life-block-number { color: #5a9a6a; }
+.root .life-block-title  { color: #dde6fa; }
+.root .life-block-text   { color: #8898c0; }
+
+/* Life visual sticky */
+.root .life-visual {
+  background: rgba(6, 10, 24, 0.80);
+  border-color: rgba(90, 130, 210, 0.18);
+}
+.root .life-visual-label { color: #6878a0; }
+
+/* Flow diagram */
+.root .flow-node-circle {
+  background: rgba(6, 10, 24, 0.90);
+  border-color: rgba(90, 130, 210, 0.32);
+}
+.root .flow-node:hover { background: rgba(14, 22, 50, 0.60); }
+.root .flow-node:hover .flow-node-circle {
+  border-color: #6ec878;
+  background: rgba(10, 30, 18, 0.80);
+}
+.root .flow-node-index  { color: #6878a0; }
+.root .flow-node-label  { color: #dde6fa; }
+.root .flow-node-sub    { color: #6878a0; }
+.root .flow-connector-line  { background: rgba(90, 130, 210, 0.24); }
+.root .flow-connector-arrow { color: rgba(90, 130, 210, 0.40); }
+
+/* ── 7 · Timeline ──────────────────────────────────────────────── */
+.root .timeline::before { background: rgba(90, 130, 210, 0.22); }
+.root .node-dot {
+  background: rgba(6, 10, 24, 0.95);
+  border-color: rgba(90, 130, 210, 0.48);
+}
+.root .timeline-node:hover .node-dot,
+.root .timeline-node.active .node-dot {
+  background: #7aaedd;
+  border-color: #7aaedd;
+}
+.root .node-year  { color: #6878a0; }
+.root .node-title { color: #d0daf4; }
+
+/* Timeline tooltip */
+.root .node-card {
+  background: rgba(4, 7, 18, 0.96);
+  border-color: rgba(90, 130, 210, 0.30);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.root .node-card::after {
+  background: rgba(4, 7, 18, 0.96);
+  border-right-color: rgba(90, 130, 210, 0.30);
+  border-bottom-color: rgba(90, 130, 210, 0.30);
+}
+.root .node-card-title { color: #dde6fa; }
+.root .node-card-text  { color: #8898c0; }
+
+/* Mobile timeline */
+.root .timeline-mobile::before { background: rgba(90, 130, 210, 0.22); }
+.root .mobile-node::before {
+  background: rgba(6, 10, 24, 0.95);
+  border-color: rgba(90, 130, 210, 0.48);
+}
+.root .mobile-node-year  { color: #6878a0; }
+.root .mobile-node-title { color: #d0daf4; }
+.root .mobile-node-text  { color: #8898c0; }
+
+/* ── 8 · Expand cards (Reality section) ────────────────────────── */
+.root .expand-card {
+  background: rgba(6, 10, 24, 0.82);
+  border-color: rgba(90, 130, 210, 0.20);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.root .expand-card:hover { border-color: rgba(176, 142, 224, 0.48); }
+.root .expand-card.open  { border-color: rgba(176, 142, 224, 0.65); }
+.root .expand-card.open .card-body {
+  background: rgba(16, 8, 34, 0.85);
+}
+.root .card-title      { color: #dde6fa; }
+.root .card-body-inner {
+  color: #8898c0;
+  border-top-color: rgba(90, 130, 210, 0.16);
+}
+.root .card-icon::before,
+.root .card-icon::after { background: #6878a0; }
+.root .cards-micro-label { color: #b08ee0; }
+
+/* Pred stack */
+.root .pred-stack-label { color: #6878a0; }
+.root .pred-layer {
+  background: rgba(6, 10, 24, 0.82);
+  border-color: rgba(90, 130, 210, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.root .pred-layer:hover {
+  background: rgba(20, 14, 44, 0.90);
+  border-color: rgba(176, 142, 224, 0.45);
+}
+.root .pred-layer-name { color: #dde6fa; }
+.root .pred-layer-note { color: #6878a0; }
+.root .pred-arrow { color: rgba(90, 130, 210, 0.48); }
+
+/* ── 9 · Religion columns ──────────────────────────────────────── */
+.root .religion-grid {
+  background: rgba(90, 130, 210, 0.10);
+  border-color: rgba(90, 130, 210, 0.16);
+}
+.root .religion-col {
+  background: rgba(6, 10, 24, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.root .religion-col:hover { background: rgba(20, 16, 8, 0.88); }
+.root .religion-col-number  { color: rgba(232, 184, 122, 0.32); }
+.root .religion-col-title   { color: #dde6fa; }
+.root .religion-col-divider { background: rgba(232, 184, 122, 0.38); }
+.root .religion-col-text    { color: #8898c0; }
+
+/* ── 10 · Consciousness ────────────────────────────────────────── */
+.root .consciousness { background: transparent !important; }
+.root .consciousness-label    { color: #6878a0; }
+.root .c-line      { color: #dde6fa; }
+.root .c-line span { color: #8898c0; }
+.root .c-line:last-child { color: #f0f4ff; font-weight: 400; }
+.root .consciousness-footnote { color: #6878a0; }
+.root .c-loop-track { stroke: rgba(90, 130, 210, 0.26); }
+
+/* ── 11 · SysView ──────────────────────────────────────────────── */
+.root .sysview-chain {
+  background: rgba(4, 7, 18, 0.65);
+  border-radius: 4px;
+  padding: 8px 24px;
+}
+.root .sysview-row { border-bottom-color: rgba(90, 130, 210, 0.14); }
+.root .sysview-row:first-child { border-top-color: rgba(90, 130, 210, 0.14); }
+.root .sysview-row:hover { background: rgba(10, 22, 18, 0.58); }
+.root .sysview-term { color: #dde6fa; }
+.root .sysview-sub  { color: #6878a0; }
+.root .sysview-conclusion { color: #a4b4d4; }
+.root .sysview-detail     { color: #6878a0; }
+.root .sysview-arrow      { color: rgba(127, 207, 176, 0.60); }
+
+/* ── 12 · Observation blocks ───────────────────────────────────── */
+.root .obs-block {
+  background: rgba(4, 7, 18, 0.78);
+  border-left-color: rgba(90, 130, 210, 0.30);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.root .obs-block-center {
+  background: transparent;
+  border-left: none;
+  border-top-color: rgba(90, 130, 210, 0.18);
+}
+.root .obs-label     { color: #6878a0; }
+.root .obs-text      { color: #9aaac8; font-style: italic; }
+.root .cross-connect { color: #6878a0; }
+
+/* ── 13 · Questions ────────────────────────────────────────────── */
+.root .q-item { border-bottom-color: rgba(90, 130, 210, 0.14); }
+.root .q-item:first-child { border-top-color: rgba(90, 130, 210, 0.14); }
+.root .q-item::before { background: rgba(20, 8, 8, 0.55); }
+.root .q-text { color: #d0daf4; }
+.root .closing-line { color: #6878a0; }
+.root .closing-line::before { color: rgba(232, 144, 144, 0.50); }
+
+/* ── 14 · Page epigram ─────────────────────────────────────────── */
+.root .page-epigram {
+  background: rgba(4, 7, 18, 0.85);
+  border-top-color: rgba(90, 130, 210, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.root .page-epigram-rule { background: rgba(90, 130, 210, 0.28); }
+.root .page-epigram-text { color: #6878a0; }
+
+/* ── 15 · Section accent overrides (override light-theme values) ─ */
+
+/* Life — emerald green */
+.root .life .section-label    { color: #6ec878 !important; }
+.root .life .section-subtitle { color: #5aaa66 !important; }
+.root .life .gold-line        { background: #6ec878 !important; opacity: 0.7; }
+.root .life .framework-term   { color: #6ec878 !important; }
+.root .life .framework-sep    { color: rgba(110, 200, 120, 0.50) !important; }
+
+/* Evolution — sky blue */
+.root .evolution .section-label    { color: #7aaedd !important; }
+.root .evolution .section-subtitle { color: #6090c0 !important; }
+.root .evolution .gold-line        { background: #7aaedd !important; opacity: 0.7; }
+.root .evolution .framework-term   { color: #7aaedd !important; }
+.root .evolution .framework-sep    { color: rgba(122, 174, 221, 0.50) !important; }
+.root .timeline-node:hover .node-dot,
+.root .timeline-node.active .node-dot {
+  background: #7aaedd !important;
+  border-color: #7aaedd !important;
+}
+
+/* Reality — soft violet */
+.root .reality .section-label    { color: #b08ee0 !important; }
+.root .reality .section-subtitle { color: #9070c8 !important; }
+.root .reality .gold-line        { background: #b08ee0 !important; opacity: 0.7; }
+.root .reality .framework-term   { color: #b08ee0 !important; }
+.root .reality .framework-sep    { color: rgba(176, 142, 224, 0.50) !important; }
+.root .reality-quote             { color: #dde6fa; }
+.root .reality-quote::before     { color: rgba(176, 142, 224, 0.20) !important; opacity: 1; }
+.root .reality-quote-attr        { color: #6878a0; }
+
+/* Religion — warm amber */
+.root .religion .section-label    { color: #e8b87a !important; }
+.root .religion .section-subtitle { color: #c89850 !important; }
+.root .religion .gold-line        { background: #e8b87a !important; opacity: 0.7; }
+.root .religion .framework-term   { color: #e8b87a !important; }
+.root .religion .framework-sep    { color: rgba(232, 184, 122, 0.50) !important; }
+.root .religion-col:hover         { background: rgba(20, 16, 8, 0.88) !important; }
+
+/* Consciousness — pale blue */
+.root .consciousness .section-label { color: #88bcee !important; }
+.root .consciousness .gold-line     { background: #88bcee !important; opacity: 0.7; }
+.root .consciousness .framework-term { color: #88bcee !important; }
+
+/* SysView — teal */
+.root .sysview .section-label    { color: #7fcfb0 !important; }
+.root .sysview .section-subtitle { color: #5aaa88 !important; }
+.root .sysview .gold-line        { background: #7fcfb0 !important; opacity: 0.7; }
+.root .sysview .framework-term   { color: #7fcfb0 !important; }
+.root .sysview-arrow             { color: rgba(127, 207, 176, 0.60) !important; }
+.root .sysview-row:hover         { background: rgba(10, 22, 18, 0.58) !important; }
+
+/* Questions — dusty rose */
+.root .questions .section-label    { color: #e89090 !important; }
+.root .questions .section-subtitle { color: #c07070 !important; }
+.root .questions .gold-line        { background: #e89090 !important; opacity: 0.7; }
+.root .questions .framework-term   { color: #e89090 !important; }
+.root .questions .framework-sep    { color: rgba(232, 144, 144, 0.50) !important; }
+.root .q-item:hover::before        { background: rgba(20, 8, 8, 0.55) !important; }
+
+/* ── 16 · Hero text explicit ───────────────────────────────────── */
+.root .hero-title    { color: #f0f2fa; }
+.root .hero-subtitle { color: #8fa8d8; }
+.root .hero-body     { color: #8898c0; }
+.root .hero-body .highlight { color: #c4d4f8; }
+.root .hero-meta-label { color: #6878a0; }
+.root .hero-meta-value { color: #a4b4d4; }
+.root .hero-meta-dot   { background: rgba(90, 130, 210, 0.30); }
+.root .portrait-caption { color: #6878a0; }
+
+/* ── 17 · Section index numbers (bg watermarks) ────────────────── */
+.root .section-index { color: rgba(90, 130, 210, 0.16); }
+
+/* ── 18 · EVo SVG ──────────────────────────────────────────────── */
+.root .evo-node-g:hover .evo-circle {
+  fill: rgba(14, 22, 50, 0.90);
+  stroke: #7aaedd;
+}
+.root .evo-node-g:hover .evo-label { fill: #dde6fa; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CINEMATIC LAYOUT — additions to reflections.module.css
+   Paste these at the END of your existing reflections.module.css
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Cinematic section base ─────────────────────────────────────────── */
+.cin-section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 100px 0 80px;
+  overflow: hidden;
+}
+
+/* Two-column layout: text left, diagram right (or reversed) */
+.cin-layout {
+  display: flex;
+  align-items: center;
+  gap: 64px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.cin-text-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.cin-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Word-split text block */
+.word-block p {
+  font-size: clamp(15px, 1.5vw, 17px);
+  line-height: 1.78;
+  color: rgba(210, 228, 255, 0.82);
+  margin-bottom: 18px;
+}
+
+/* Individual word span — animated by GSAP */
+.word {
+  display: inline-block;
+  will-change: opacity, transform, filter;
+}
+
+/* Stats row */
+.cin-stats {
+  display: flex;
+  gap: 36px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.cin-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-number {
+  font-size: clamp(22px, 2.5vw, 30px);
+  font-family: "Georgia", serif;
+  color: #7BAAD4;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  will-change: contents;
+}
+
+.stat-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(120, 160, 200, 0.6);
+}
+
+/* Inline quote */
+.cin-quote {
+  font-family: "Georgia", serif;
+  font-size: clamp(18px, 2vw, 22px);
+  font-style: italic;
+  color: rgba(200, 225, 255, 0.70);
+  border-left: 2px solid rgba(100, 160, 220, 0.4);
+  padding-left: 20px;
+  margin: 8px 0 0;
+  line-height: 1.55;
+}
+
+/* ── Diagram float container ────────────────────────────────────────── */
+.diagram-float {
+  flex: 0 0 340px;
+  background: rgba(10, 20, 40, 0.55);
+  border: 1px solid rgba(80, 120, 180, 0.18);
+  border-radius: 16px;
+  padding: 28px 24px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.35);
+  will-change: opacity, transform;
+}
+
+/* ── Hero cinematic layout ──────────────────────────────────────────── */
+.cin-hero-inner {
+  display: flex;
+  align-items: center;
+  gap: 64px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.cin-hero-text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Portrait — small, subtle */
+.hero-portrait-wrap {
+  flex: 0 0 200px;
+  will-change: transform;
+}
+
+.hero-portrait-frame {
+  position: relative;
+  width: 200px;
+  height: 260px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(80, 120, 180, 0.20);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5);
+}
+
+.hero-portrait-vignette {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    rgba(6, 14, 34, 0.7) 100%
+  );
+  pointer-events: none;
+}
+
+/* ── Navigation dots ────────────────────────────────────────────────── */
+.nav-dots {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.nav-dot-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s;
+  opacity: 0.5;
+}
+
+.nav-dot-wrap:hover,
+.nav-dot-active {
+  opacity: 1;
+}
+
+.nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(120, 175, 230, 0.5);
+  border: 1px solid rgba(120, 175, 230, 0.8);
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.nav-dot-active .nav-dot {
+  width: 8px;
+  height: 8px;
+  background: rgba(120, 175, 230, 1);
+  box-shadow: 0 0 8px rgba(120, 175, 230, 0.6);
+}
+
+.nav-dot-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(150, 195, 235, 0.8);
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.nav-dot-wrap:hover .nav-dot-label,
+.nav-dot-active .nav-dot-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── Questions section ──────────────────────────────────────────────── */
+.cin-questions-inner {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.q-item {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(80, 120, 180, 0.12);
+  width: 100%;
+  list-style: none;
+}
+
+.q-number {
+  font-size: 11px;
+  font-family: "Georgia", serif;
+  color: rgba(100, 150, 200, 0.5);
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  width: 28px;
+}
+
+.q-text {
+  font-size: clamp(15px, 1.5vw, 18px);
+  color: rgba(200, 225, 255, 0.75);
+  line-height: 1.55;
+  font-family: "Georgia", serif;
+}
+
+.cin-closing {
+  max-width: 640px;
+  text-align: center;
+  margin-top: 56px;
+}
+
+/* ── Belief map ─────────────────────────────────────────────────────── */
+.belief-map {
+  width: 100%;
+}
+
+.belief-map-title {
+  display: block;
+  font-family: "Georgia", serif;
+  font-size: 13px;
+  color: rgba(150, 195, 235, 0.7);
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
+  font-style: italic;
+}
+
+.belief-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.belief-table-head,
+.belief-table-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(80, 120, 180, 0.12);
+}
+
+.belief-t-cell {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.6);
+  text-align: center;
+}
+
+.belief-q-cell {
+  font-size: 11px;
+  color: rgba(160, 200, 240, 0.7);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.belief-a-cell {
+  font-size: 10px;
+  color: rgba(140, 185, 225, 0.65);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .cin-layout {
+    flex-direction: column;
+    gap: 40px;
+    padding: 0 24px;
+  }
+
+  .cin-hero-inner {
+    flex-direction: column-reverse;
+    gap: 32px;
+    padding: 0 24px;
+    text-align: center;
+    align-items: center;
+  }
+
+  .hero-portrait-wrap {
+    flex: 0 0 auto;
+  }
+
+  .hero-portrait-frame {
+    width: 140px;
+    height: 180px;
+  }
+
+  .diagram-float {
+    flex: none;
+    width: 100%;
+  }
+
+  .nav-dots {
+    display: none;
+  }
+
+  .belief-table-head,
+  .belief-table-row {
+    grid-template-columns: 1.2fr 1fr 1fr;
+  }
+
+  .belief-t-cell:nth-child(n+4),
+  .belief-a-cell:nth-child(n+4) {
+    display: none;
+  }
+
+  .cin-questions-inner {
+    padding: 0 24px;
+  }
+}
+/* ═══════════════════════════════════════════════════════════════════════
+   CINEMATIC LAYOUT — additions to reflections.module.css
+   Paste these at the END of your existing reflections.module.css
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Cinematic section base ─────────────────────────────────────────── */
+.cin-section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 100px 0 80px;
+  overflow: hidden;
+}
+
+/* Two-column layout: text left, diagram right (or reversed) */
+.cin-layout {
+  display: flex;
+  align-items: center;
+  gap: 64px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.cin-text-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.cin-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Word-split text block */
+.word-block p {
+  font-size: clamp(15px, 1.5vw, 17px);
+  line-height: 1.78;
+  color: rgba(210, 228, 255, 0.82);
+  margin-bottom: 18px;
+}
+
+/* Individual word span — animated by GSAP */
+.word {
+  display: inline-block;
+  will-change: opacity, transform, filter;
+}
+
+/* Stats row */
+.cin-stats {
+  display: flex;
+  gap: 36px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.cin-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-number {
+  font-size: clamp(22px, 2.5vw, 30px);
+  font-family: "Georgia", serif;
+  color: #7BAAD4;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  will-change: contents;
+}
+
+.stat-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(120, 160, 200, 0.6);
+}
+
+/* Inline quote */
+.cin-quote {
+  font-family: "Georgia", serif;
+  font-size: clamp(18px, 2vw, 22px);
+  font-style: italic;
+  color: rgba(200, 225, 255, 0.70);
+  border-left: 2px solid rgba(100, 160, 220, 0.4);
+  padding-left: 20px;
+  margin: 8px 0 0;
+  line-height: 1.55;
+}
+
+/* ── Diagram float container ────────────────────────────────────────── */
+.diagram-float {
+  flex: 0 0 340px;
+  background: rgba(10, 20, 40, 0.55);
+  border: 1px solid rgba(80, 120, 180, 0.18);
+  border-radius: 16px;
+  padding: 28px 24px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.35);
+  will-change: opacity, transform;
+}
+
+/* ── Hero cinematic layout ──────────────────────────────────────────── */
+.cin-hero-inner {
+  display: flex;
+  align-items: center;
+  gap: 64px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.cin-hero-text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Portrait — small, subtle */
+.hero-portrait-wrap {
+  flex: 0 0 200px;
+  will-change: transform;
+}
+
+.hero-portrait-frame {
+  position: relative;
+  width: 200px;
+  height: 260px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(80, 120, 180, 0.20);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5);
+}
+
+.hero-portrait-vignette {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    rgba(6, 14, 34, 0.7) 100%
+  );
+  pointer-events: none;
+}
+
+/* ── Navigation dots ────────────────────────────────────────────────── */
+.nav-dots {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.nav-dot-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s;
+  opacity: 0.5;
+}
+
+.nav-dot-wrap:hover,
+.nav-dot-active {
+  opacity: 1;
+}
+
+.nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(120, 175, 230, 0.5);
+  border: 1px solid rgba(120, 175, 230, 0.8);
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.nav-dot-active .nav-dot {
+  width: 8px;
+  height: 8px;
+  background: rgba(120, 175, 230, 1);
+  box-shadow: 0 0 8px rgba(120, 175, 230, 0.6);
+}
+
+.nav-dot-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(150, 195, 235, 0.8);
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.nav-dot-wrap:hover .nav-dot-label,
+.nav-dot-active .nav-dot-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── Questions section ──────────────────────────────────────────────── */
+.cin-questions-inner {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.q-item {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(80, 120, 180, 0.12);
+  width: 100%;
+  list-style: none;
+}
+
+.q-number {
+  font-size: 11px;
+  font-family: "Georgia", serif;
+  color: rgba(100, 150, 200, 0.5);
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  width: 28px;
+}
+
+.q-text {
+  font-size: clamp(15px, 1.5vw, 18px);
+  color: rgba(200, 225, 255, 0.75);
+  line-height: 1.55;
+  font-family: "Georgia", serif;
+}
+
+.cin-closing {
+  max-width: 640px;
+  text-align: center;
+  margin-top: 56px;
+}
+
+/* ── Belief map ─────────────────────────────────────────────────────── */
+.belief-map {
+  width: 100%;
+}
+
+.belief-map-title {
+  display: block;
+  font-family: "Georgia", serif;
+  font-size: 13px;
+  color: rgba(150, 195, 235, 0.7);
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
+  font-style: italic;
+}
+
+.belief-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.belief-table-head,
+.belief-table-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(80, 120, 180, 0.12);
+}
+
+.belief-t-cell {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.6);
+  text-align: center;
+}
+
+.belief-q-cell {
+  font-size: 11px;
+  color: rgba(160, 200, 240, 0.7);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.belief-a-cell {
+  font-size: 10px;
+  color: rgba(140, 185, 225, 0.65);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .cin-layout {
+    flex-direction: column;
+    gap: 40px;
+    padding: 0 24px;
+  }
+
+  .cin-hero-inner {
+    flex-direction: column-reverse;
+    gap: 32px;
+    padding: 0 24px;
+    text-align: center;
+    align-items: center;
+  }
+
+  .hero-portrait-wrap {
+    flex: 0 0 auto;
+  }
+
+  .hero-portrait-frame {
+    width: 140px;
+    height: 180px;
+  }
+
+  .diagram-float {
+    flex: none;
+    width: 100%;
+  }
+
+  .nav-dots {
+    display: none;
+  }
+
+  .belief-table-head,
+  .belief-table-row {
+    grid-template-columns: 1.2fr 1fr 1fr;
+  }
+
+  .belief-t-cell:nth-child(n+4),
+  .belief-a-cell:nth-child(n+4) {
+    display: none;
+  }
+
+  .cin-questions-inner {
+    padding: 0 24px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SECTION 05 FIXES — compact c-lines, no outer dark bg, tight gaps
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Compact lines container — no background, tight spacing */
+.c-lines-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+/* c-line now same size as body text — NOT giant */
+.c-line {
+  font-size: clamp(14px, 1.4vw, 16px);
+  font-family: "Georgia", serif;
+  color: rgba(180, 210, 245, 0.70);
+  line-height: 1.6;
+  opacity: 0;
+  transform: translateY(10px);
+  /* GSAP animates opacity + translateY to visible state */
+}
+
+.c-line-em {
+  color: rgba(120, 185, 255, 0.95);
+  font-style: italic;
+}
+
+/* Footnote under the lines — same compact size */
+.consciousness-footnote {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: rgba(120, 160, 210, 0.55);
+  font-style: italic;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+/* Global gap control — sections have breathing room, but internals are tight */
+.cin-section {
+  padding: 80px 0 60px !important;
+}
+
+.cin-header {
+  gap: 6px !important;
+}
+
+.cin-text-col {
+  gap: 18px !important;
+}
+
+.word-block p {
+  margin-bottom: 12px !important;
+}
+
+.cin-body {
+  gap: 0 !important;
+}
+
+/* diagram-float keeps dark bg — this is the only element that should be dark */
+.diagram-float {
+  background: rgba(8, 18, 38, 0.62) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NEW ELEMENTS — curiosity lines, god block, q-groups, signature
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Curiosity opener line — one per section */
+.curiosity-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.curiosity-mark {
+  font-size: 11px;
+  color: rgba(100, 160, 220, 0.5);
+  font-family: "Georgia", serif;
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.curiosity-text {
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(100, 160, 220, 0.55);
+  font-style: italic;
+}
+
+/* Religion — calm God questions block */
+.religion-god-block {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(80, 120, 180, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.god-block-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.45);
+}
+
+/* Questions — group label */
+.q-group-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.45);
+  margin-bottom: 4px;
+  margin-top: 0;
+  width: 100%;
+  text-align: left;
+}
+
+/* Page signature */
+.page-signature {
+  font-family: "Georgia", serif;
+  font-size: 16px;
+  color: rgba(160, 200, 240, 0.65);
+  margin: 20px 0 4px;
+  font-style: italic;
+  text-align: center;
+}
+
+.page-signature-sub {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.38);
+  text-align: center;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CINEMATIC LAYOUT — additions to reflections.module.css
+   Paste these at the END of your existing reflections.module.css
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Cinematic section base ─────────────────────────────────────────── */
+.cin-section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 100px 0 80px;
+  overflow: hidden;
+}
+
+/* Two-column layout: text left, diagram right (or reversed) */
+.cin-layout {
+  display: flex;
+  align-items: center;
+  gap: 64px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.cin-text-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.cin-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Word-split text block */
+.word-block p {
+  font-size: clamp(15px, 1.5vw, 17px);
+  line-height: 1.78;
+  color: rgba(210, 228, 255, 0.82);
+  margin-bottom: 18px;
+}
+
+/* Individual word span — animated by GSAP */
+.word {
+  display: inline-block;
+  will-change: opacity, transform, filter;
+}
+
+/* Stats row */
+.cin-stats {
+  display: flex;
+  gap: 36px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.cin-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-number {
+  font-size: clamp(22px, 2.5vw, 30px);
+  font-family: "Georgia", serif;
+  color: #7BAAD4;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  will-change: contents;
+}
+
+.stat-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(120, 160, 200, 0.6);
+}
+
+/* Inline quote */
+.cin-quote {
+  font-family: "Georgia", serif;
+  font-size: clamp(18px, 2vw, 22px);
+  font-style: italic;
+  color: rgba(200, 225, 255, 0.70);
+  border-left: 2px solid rgba(100, 160, 220, 0.4);
+  padding-left: 20px;
+  margin: 8px 0 0;
+  line-height: 1.55;
+}
+
+/* ── Diagram float container ────────────────────────────────────────── */
+.diagram-float {
+  flex: 0 0 340px;
+  background: rgba(10, 20, 40, 0.55);
+  border: 1px solid rgba(80, 120, 180, 0.18);
+  border-radius: 16px;
+  padding: 28px 24px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.35);
+  will-change: opacity, transform;
+}
+
+/* ── Hero cinematic layout ──────────────────────────────────────────── */
+.cin-hero-inner {
+  display: flex;
+  align-items: center;
+  gap: 64px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.cin-hero-text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Portrait — small, subtle */
+.hero-portrait-wrap {
+  flex: 0 0 200px;
+  will-change: transform;
+}
+
+.hero-portrait-frame {
+  position: relative;
+  width: 200px;
+  height: 260px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(80, 120, 180, 0.20);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5);
+}
+
+.hero-portrait-vignette {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    rgba(6, 14, 34, 0.7) 100%
+  );
+  pointer-events: none;
+}
+
+/* ── Navigation dots ────────────────────────────────────────────────── */
+.nav-dots {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.nav-dot-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s;
+  opacity: 0.5;
+}
+
+.nav-dot-wrap:hover,
+.nav-dot-active {
+  opacity: 1;
+}
+
+.nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(120, 175, 230, 0.5);
+  border: 1px solid rgba(120, 175, 230, 0.8);
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.nav-dot-active .nav-dot {
+  width: 8px;
+  height: 8px;
+  background: rgba(120, 175, 230, 1);
+  box-shadow: 0 0 8px rgba(120, 175, 230, 0.6);
+}
+
+.nav-dot-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(150, 195, 235, 0.8);
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.nav-dot-wrap:hover .nav-dot-label,
+.nav-dot-active .nav-dot-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── Questions section ──────────────────────────────────────────────── */
+.cin-questions-inner {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.q-item {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(80, 120, 180, 0.12);
+  width: 100%;
+  list-style: none;
+}
+
+.q-number {
+  font-size: 11px;
+  font-family: "Georgia", serif;
+  color: rgba(100, 150, 200, 0.5);
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  width: 28px;
+}
+
+.q-text {
+  font-size: clamp(15px, 1.5vw, 18px);
+  color: rgba(200, 225, 255, 0.75);
+  line-height: 1.55;
+  font-family: "Georgia", serif;
+}
+
+.cin-closing {
+  max-width: 640px;
+  text-align: center;
+  margin-top: 56px;
+}
+
+/* ── Belief map ─────────────────────────────────────────────────────── */
+.belief-map {
+  width: 100%;
+}
+
+.belief-map-title {
+  display: block;
+  font-family: "Georgia", serif;
+  font-size: 13px;
+  color: rgba(150, 195, 235, 0.7);
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
+  font-style: italic;
+}
+
+.belief-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.belief-table-head,
+.belief-table-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(80, 120, 180, 0.12);
+}
+
+.belief-t-cell {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.6);
+  text-align: center;
+}
+
+.belief-q-cell {
+  font-size: 11px;
+  color: rgba(160, 200, 240, 0.7);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.belief-a-cell {
+  font-size: 10px;
+  color: rgba(140, 185, 225, 0.65);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .cin-layout {
+    flex-direction: column;
+    gap: 40px;
+    padding: 0 24px;
+  }
+
+  .cin-hero-inner {
+    flex-direction: column-reverse;
+    gap: 32px;
+    padding: 0 24px;
+    text-align: center;
+    align-items: center;
+  }
+
+  .hero-portrait-wrap {
+    flex: 0 0 auto;
+  }
+
+  .hero-portrait-frame {
+    width: 140px;
+    height: 180px;
+  }
+
+  .diagram-float {
+    flex: none;
+    width: 100%;
+  }
+
+  .nav-dots {
+    display: none;
+  }
+
+  .belief-table-head,
+  .belief-table-row {
+    grid-template-columns: 1.2fr 1fr 1fr;
+  }
+
+  .belief-t-cell:nth-child(n+4),
+  .belief-a-cell:nth-child(n+4) {
+    display: none;
+  }
+
+  .cin-questions-inner {
+    padding: 0 24px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SECTION 05 FIXES — compact c-lines, no outer dark bg, tight gaps
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Compact lines container — no background, tight spacing */
+.c-lines-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+/* c-line now same size as body text — NOT giant */
+.c-line {
+  font-size: clamp(14px, 1.4vw, 16px);
+  font-family: "Georgia", serif;
+  color: rgba(180, 210, 245, 0.70);
+  line-height: 1.6;
+  opacity: 0;
+  transform: translateY(10px);
+  /* GSAP animates opacity + translateY to visible state */
+}
+
+.c-line-em {
+  color: rgba(120, 185, 255, 0.95);
+  font-style: italic;
+}
+
+/* Footnote under the lines — same compact size */
+.consciousness-footnote {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: rgba(120, 160, 210, 0.55);
+  font-style: italic;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+/* Global gap control — sections have breathing room, but internals are tight */
+.cin-section {
+  padding: 80px 0 60px !important;
+}
+
+.cin-header {
+  gap: 6px !important;
+}
+
+.cin-text-col {
+  gap: 18px !important;
+}
+
+.word-block p {
+  margin-bottom: 12px !important;
+}
+
+.cin-body {
+  gap: 0 !important;
+}
+
+/* diagram-float keeps dark bg — this is the only element that should be dark */
+.diagram-float {
+  background: rgba(8, 18, 38, 0.62) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NEW ELEMENTS — curiosity lines, god block, q-groups, signature
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Curiosity opener line — one per section */
+.curiosity-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.curiosity-mark {
+  font-size: 11px;
+  color: rgba(100, 160, 220, 0.5);
+  font-family: "Georgia", serif;
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.curiosity-text {
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(100, 160, 220, 0.55);
+  font-style: italic;
+}
+
+/* Religion — calm God questions block */
+.religion-god-block {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(80, 120, 180, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.god-block-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.45);
+}
+
+/* Questions — group label */
+.q-group-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.45);
+  margin-bottom: 4px;
+  margin-top: 0;
+  width: 100%;
+  text-align: left;
+}
+
+/* Page signature */
+.page-signature {
+  font-family: "Georgia", serif;
+  font-size: 16px;
+  color: rgba(160, 200, 240, 0.65);
+  margin: 20px 0 4px;
+  font-style: italic;
+  text-align: center;
+}
+
+.page-signature-sub {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.38);
+  text-align: center;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ALIGNMENT + CONSCIOUSNESS GAP FIXES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Top-aligned layout variant — used for consciousness so text
+   doesn't float to center against the shorter loop diagram */
+.cin-layout-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 64px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+/* Fix default cin-layout to also top-align — prevents vertical
+   centering gaps when one column is shorter than the other */
+.cin-layout {
+  align-items: flex-start !important;
+}
+
+/* c-line: use visibility:hidden not opacity:0 as initial state
+   so it doesn't create invisible but space-consuming dead zones.
+   GSAP will animate from opacity 0 → 1 on scroll, but the
+   element won't push layout around when invisible. */
+.c-lines-compact {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.c-line {
+  /* Override the opacity:0 default — GSAP sets this via inline style.
+     The element exists in layout; GSAP controls the fade. */
+  font-size: clamp(14px, 1.35vw, 15.5px) !important;
+  line-height: 1.65;
+  color: rgba(160, 200, 240, 0.72);
+  font-family: "Georgia", serif;
+}
+
+/* Tighter internal spacing for all sections */
+.cin-section {
+  padding: 72px 0 56px !important;
+}
+
+.cin-header {
+  gap: 5px !important;
+  margin-bottom: 4px;
+}
+
+.cin-text-col {
+  gap: 14px !important;
+}
+
+.word-block p {
+  margin-bottom: 10px !important;
+  line-height: 1.72 !important;
+}
+
+/* Section index number — top-left corner, not interfering with layout */
+.section-index {
+  position: absolute;
+  top: 28px;
+  left: 48px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgba(80, 120, 180, 0.22);
+  font-family: "Georgia", serif;
+  pointer-events: none;
+}
+
+/* diagram-float top-aligns with text col */
+.diagram-float {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+@media (max-width: 900px) {
+  .cin-layout-top {
+    flex-direction: column;
+    gap: 32px;
+    padding: 0 24px;
+  }
+  .section-index {
+    left: 24px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CINEMATIC LAYOUT — additions to reflections.module.css
+   Paste these at the END of your existing reflections.module.css
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Cinematic section base ─────────────────────────────────────────── */
+.cin-section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 100px 0 80px;
+  overflow: hidden;
+}
+
+/* Two-column layout: text left, diagram right (or reversed) */
+.cin-layout {
+  display: flex;
+  align-items: center;
+  gap: 64px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.cin-text-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.cin-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Word-split text block */
+.word-block p {
+  font-size: clamp(15px, 1.5vw, 17px);
+  line-height: 1.78;
+  color: rgba(210, 228, 255, 0.82);
+  margin-bottom: 18px;
+}
+
+/* Individual word span — animated by GSAP */
+.word {
+  display: inline-block;
+  will-change: opacity, transform, filter;
+}
+
+/* Stats row */
+.cin-stats {
+  display: flex;
+  gap: 36px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.cin-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-number {
+  font-size: clamp(22px, 2.5vw, 30px);
+  font-family: "Georgia", serif;
+  color: #7BAAD4;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  will-change: contents;
+}
+
+.stat-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(120, 160, 200, 0.6);
+}
+
+/* Inline quote */
+.cin-quote {
+  font-family: "Georgia", serif;
+  font-size: clamp(18px, 2vw, 22px);
+  font-style: italic;
+  color: rgba(200, 225, 255, 0.70);
+  border-left: 2px solid rgba(100, 160, 220, 0.4);
+  padding-left: 20px;
+  margin: 8px 0 0;
+  line-height: 1.55;
+}
+
+/* ── Diagram float container ────────────────────────────────────────── */
+.diagram-float {
+  flex: 0 0 340px;
+  background: rgba(10, 20, 40, 0.55);
+  border: 1px solid rgba(80, 120, 180, 0.18);
+  border-radius: 16px;
+  padding: 28px 24px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.35);
+  will-change: opacity, transform;
+}
+
+/* ── Hero cinematic layout ──────────────────────────────────────────── */
+.cin-hero-inner {
+  display: flex;
+  align-items: center;
+  gap: 64px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.cin-hero-text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Portrait — small, subtle */
+.hero-portrait-wrap {
+  flex: 0 0 200px;
+  will-change: transform;
+}
+
+.hero-portrait-frame {
+  position: relative;
+  width: 200px;
+  height: 260px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(80, 120, 180, 0.20);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5);
+}
+
+.hero-portrait-vignette {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    rgba(6, 14, 34, 0.7) 100%
+  );
+  pointer-events: none;
+}
+
+/* ── Navigation dots ────────────────────────────────────────────────── */
+.nav-dots {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.nav-dot-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s;
+  opacity: 0.5;
+}
+
+.nav-dot-wrap:hover,
+.nav-dot-active {
+  opacity: 1;
+}
+
+.nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(120, 175, 230, 0.5);
+  border: 1px solid rgba(120, 175, 230, 0.8);
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.nav-dot-active .nav-dot {
+  width: 8px;
+  height: 8px;
+  background: rgba(120, 175, 230, 1);
+  box-shadow: 0 0 8px rgba(120, 175, 230, 0.6);
+}
+
+.nav-dot-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(150, 195, 235, 0.8);
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.nav-dot-wrap:hover .nav-dot-label,
+.nav-dot-active .nav-dot-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── Questions section ──────────────────────────────────────────────── */
+.cin-questions-inner {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.q-item {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(80, 120, 180, 0.12);
+  width: 100%;
+  list-style: none;
+}
+
+.q-number {
+  font-size: 11px;
+  font-family: "Georgia", serif;
+  color: rgba(100, 150, 200, 0.5);
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  width: 28px;
+}
+
+.q-text {
+  font-size: clamp(15px, 1.5vw, 18px);
+  color: rgba(200, 225, 255, 0.75);
+  line-height: 1.55;
+  font-family: "Georgia", serif;
+}
+
+.cin-closing {
+  max-width: 640px;
+  text-align: center;
+  margin-top: 56px;
+}
+
+/* ── Belief map ─────────────────────────────────────────────────────── */
+.belief-map {
+  width: 100%;
+}
+
+.belief-map-title {
+  display: block;
+  font-family: "Georgia", serif;
+  font-size: 13px;
+  color: rgba(150, 195, 235, 0.7);
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
+  font-style: italic;
+}
+
+.belief-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.belief-table-head,
+.belief-table-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(80, 120, 180, 0.12);
+}
+
+.belief-t-cell {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.6);
+  text-align: center;
+}
+
+.belief-q-cell {
+  font-size: 11px;
+  color: rgba(160, 200, 240, 0.7);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.belief-a-cell {
+  font-size: 10px;
+  color: rgba(140, 185, 225, 0.65);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .cin-layout {
+    flex-direction: column;
+    gap: 40px;
+    padding: 0 24px;
+  }
+
+  .cin-hero-inner {
+    flex-direction: column-reverse;
+    gap: 32px;
+    padding: 0 24px;
+    text-align: center;
+    align-items: center;
+  }
+
+  .hero-portrait-wrap {
+    flex: 0 0 auto;
+  }
+
+  .hero-portrait-frame {
+    width: 140px;
+    height: 180px;
+  }
+
+  .diagram-float {
+    flex: none;
+    width: 100%;
+  }
+
+  .nav-dots {
+    display: none;
+  }
+
+  .belief-table-head,
+  .belief-table-row {
+    grid-template-columns: 1.2fr 1fr 1fr;
+  }
+
+  .belief-t-cell:nth-child(n+4),
+  .belief-a-cell:nth-child(n+4) {
+    display: none;
+  }
+
+  .cin-questions-inner {
+    padding: 0 24px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SECTION 05 FIXES — compact c-lines, no outer dark bg, tight gaps
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Compact lines container — no background, tight spacing */
+.c-lines-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+/* c-line now same size as body text — NOT giant */
+.c-line {
+  font-size: clamp(14px, 1.4vw, 16px);
+  font-family: "Georgia", serif;
+  color: rgba(180, 210, 245, 0.70);
+  line-height: 1.6;
+  opacity: 0;
+  transform: translateY(10px);
+  /* GSAP animates opacity + translateY to visible state */
+}
+
+.c-line-em {
+  color: rgba(120, 185, 255, 0.95);
+  font-style: italic;
+}
+
+/* Footnote under the lines — same compact size */
+.consciousness-footnote {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: rgba(120, 160, 210, 0.55);
+  font-style: italic;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+/* Global gap control — sections have breathing room, but internals are tight */
+.cin-section {
+  padding: 80px 0 60px !important;
+}
+
+.cin-header {
+  gap: 6px !important;
+}
+
+.cin-text-col {
+  gap: 18px !important;
+}
+
+.word-block p {
+  margin-bottom: 12px !important;
+}
+
+.cin-body {
+  gap: 0 !important;
+}
+
+/* diagram-float keeps dark bg — this is the only element that should be dark */
+.diagram-float {
+  background: rgba(8, 18, 38, 0.62) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NEW ELEMENTS — curiosity lines, god block, q-groups, signature
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Curiosity opener line — one per section */
+.curiosity-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.curiosity-mark {
+  font-size: 11px;
+  color: rgba(100, 160, 220, 0.5);
+  font-family: "Georgia", serif;
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.curiosity-text {
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(100, 160, 220, 0.55);
+  font-style: italic;
+}
+
+/* Religion — calm God questions block */
+.religion-god-block {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(80, 120, 180, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.god-block-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.45);
+}
+
+/* Questions — group label */
+.q-group-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.45);
+  margin-bottom: 4px;
+  margin-top: 0;
+  width: 100%;
+  text-align: left;
+}
+
+/* Page signature */
+.page-signature {
+  font-family: "Georgia", serif;
+  font-size: 16px;
+  color: rgba(160, 200, 240, 0.65);
+  margin: 20px 0 4px;
+  font-style: italic;
+  text-align: center;
+}
+
+.page-signature-sub {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(100, 150, 200, 0.38);
+  text-align: center;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ALIGNMENT + CONSCIOUSNESS GAP FIXES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Top-aligned layout variant — used for consciousness so text
+   doesn't float to center against the shorter loop diagram */
+.cin-layout-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 64px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+/* Fix default cin-layout to also top-align — prevents vertical
+   centering gaps when one column is shorter than the other */
+.cin-layout {
+  align-items: flex-start !important;
+}
+
+/* c-line: use visibility:hidden not opacity:0 as initial state
+   so it doesn't create invisible but space-consuming dead zones.
+   GSAP will animate from opacity 0 → 1 on scroll, but the
+   element won't push layout around when invisible. */
+.c-lines-compact {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.c-line {
+  /* Override the opacity:0 default — GSAP sets this via inline style.
+     The element exists in layout; GSAP controls the fade. */
+  font-size: clamp(14px, 1.35vw, 15.5px) !important;
+  line-height: 1.65;
+  color: rgba(160, 200, 240, 0.72);
+  font-family: "Georgia", serif;
+}
+
+/* Tighter internal spacing for all sections */
+.cin-section {
+  padding: 72px 0 56px !important;
+}
+
+.cin-header {
+  gap: 5px !important;
+  margin-bottom: 4px;
+}
+
+.cin-text-col {
+  gap: 14px !important;
+}
+
+.word-block p {
+  margin-bottom: 10px !important;
+  line-height: 1.72 !important;
+}
+
+/* Section index number — top-left corner, not interfering with layout */
+.section-index {
+  position: absolute;
+  top: 28px;
+  left: 48px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgba(80, 120, 180, 0.22);
+  font-family: "Georgia", serif;
+  pointer-events: none;
+}
+
+/* diagram-float top-aligns with text col */
+.diagram-float {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+@media (max-width: 900px) {
+  .cin-layout-top {
+    flex-direction: column;
+    gap: 32px;
+    padding: 0 24px;
+  }
+  .section-index {
+    left: 24px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PHRASE HIGHLIGHTS — per-section accent colours, subtle + muted
+   Matching the existing palette but lightened for dark background.
+   Base colours from original CSS, brightened ~40% for readability.
+   All use a very faint text-shadow glow — not neon, just warmth.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* S01 — Life — green */
+.hl-life {
+  color: rgba(110, 195, 130, 0.92) !important;
+  text-shadow: 0 0 18px rgba(74, 122, 86, 0.28);
+}
+
+/* S02 — Evolution — blue */
+.hl-evolution {
+  color: rgba(100, 168, 235, 0.92) !important;
+  text-shadow: 0 0 18px rgba(58, 94, 140, 0.28);
+}
+
+/* S03 — Reality — purple */
+.hl-reality {
+  color: rgba(180, 140, 255, 0.88) !important;
+  text-shadow: 0 0 18px rgba(94, 68, 128, 0.28);
+}
+
+/* S04 — Religion — amber */
+.hl-religion {
+  color: rgba(220, 172, 90, 0.92) !important;
+  text-shadow: 0 0 18px rgba(138, 94, 42, 0.28);
+}
+
+/* S05 — Consciousness — steel blue */
+.hl-consciousness {
+  color: rgba(90, 168, 225, 0.90) !important;
+  text-shadow: 0 0 18px rgba(46, 77, 106, 0.30);
+}
+
+/* S06 — System View — teal */
+.hl-sysview {
+  color: rgba(90, 200, 160, 0.90) !important;
+  text-shadow: 0 0 18px rgba(61, 107, 88, 0.28);
+}
+
+/* S07 — Questions — muted red */
+.hl-questions {
+  color: rgba(215, 120, 105, 0.90) !important;
+  text-shadow: 0 0 18px rgba(122, 61, 61, 0.28);
+}

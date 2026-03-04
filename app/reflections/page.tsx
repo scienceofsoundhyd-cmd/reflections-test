@@ -1,262 +1,160 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "./reflections.module.css";
 import Image from "next/image";
+import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
+import GlobalBackground from "./GlobalBackground";
 
-const FLOW_NODES = [
-  { id: "energy",        label: "Energy Input",      sub: "Thermodynamic gradient" },
-  { id: "matter",        label: "Matter",             sub: "Atomic structure" },
-  { id: "self-org",      label: "Self-Organization",  sub: "Bounded chemistry" },
-  { id: "replication",   label: "Replication",        sub: "Information transfer" },
-  { id: "adaptation",    label: "Adaptation",         sub: "Differential selection" },
-  { id: "consciousness", label: "Consciousness",      sub: "Internal modeling" },
+// ─────────────────────────────────────────────────────────────────────────────
+// WORD-SPLIT — wraps each word for individual GSAP animation
+// ─────────────────────────────────────────────────────────────────────────────
+function WordSplit({ text, className = "" }: { text: string; className?: string }) {
+  return (
+    <span className={className}>
+      {text.split(" ").map((word, i) => (
+        <span key={i} className={styles.word} style={{ display:"inline-block", marginRight:"0.28em" }}>
+          {word}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHRASE — inline highlighted words, still individually animated by GSAP.
+// section: "life"|"evolution"|"reality"|"religion"|"consciousness"|"sysview"|"questions"
+// ─────────────────────────────────────────────────────────────────────────────
+function Phrase({ text, section }: { text: string; section: string }) {
+  return (
+    <>
+      {text.split(" ").map((word, i) => (
+        <span key={i}
+          className={`${styles.word} ${styles[`hl-${section}`]}`}
+          style={{ display:"inline-block", marginRight:"0.28em" }}>
+          {word}
+        </span>
+      ))}
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION CURIOSITY OPENER — one-line per section, rendered as prop
+// ─────────────────────────────────────────────────────────────────────────────
+function CuriosityLine({ text }: { text: string }) {
+  return (
+    <div className={styles["curiosity-line"]}>
+      <span className={styles["curiosity-mark"]}>?</span>
+      <span className={styles["curiosity-text"]}>{text}</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NAV DOTS
+// ─────────────────────────────────────────────────────────────────────────────
+const NAV_SECTIONS = [
+  { id:"hero",          label:"Observer"      },
+  { id:"life",          label:"Life"          },
+  { id:"evolution",     label:"Evolution"     },
+  { id:"reality",       label:"Reality"       },
+  { id:"religion",      label:"Meaning"       },
+  { id:"consciousness", label:"Consciousness" },
+  { id:"sysview",       label:"System"        },
+  { id:"questions",     label:"Questions"     },
 ];
 
+function NavDots({ active }: { active: number }) {
+  return (
+    <nav className={styles["nav-dots"]} aria-label="Section navigation">
+      {NAV_SECTIONS.map((s, i) => (
+        <a key={s.id} href={`#${s.id}`}
+          className={`${styles["nav-dot-wrap"]} ${i === active ? styles["nav-dot-active"] : ""}`}
+          aria-label={s.label}
+          onClick={e => { e.preventDefault(); document.getElementById(s.id)?.scrollIntoView({ behavior:"smooth" }); }}>
+          <span className={styles["nav-dot"]} />
+          <span className={styles["nav-dot-label"]}>{s.label}</span>
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DIAGRAMS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// S01 — Life flow
+const FLOW_NODES = [
+  { label:"Energy Input",      sub:"Thermodynamic gradient" },
+  { label:"Matter",            sub:"Atomic structure"       },
+  { label:"Self-Organization", sub:"Bounded chemistry"      },
+  { label:"Replication",       sub:"Information transfer"   },
+  { label:"Adaptation",        sub:"Differential selection" },
+  { label:"Consciousness",     sub:"Internal modeling"      },
+];
 function LifeFlowDiagram() {
   return (
-    <div className={styles["flow-diagram"]}>
-      {FLOW_NODES.map((node, i) => (
-        <div key={node.id} className={styles["flow-node-wrap"]}>
-          <div className={styles["flow-node"]}>
-            <div className={styles["flow-node-circle"]}>
-              <span className={styles["flow-node-index"]}>{String(i + 1).padStart(2, "0")}</span>
+    <div className={styles["diagram-float"]}>
+      <div className={styles["flow-diagram"]}>
+        {FLOW_NODES.map((node, i) => (
+          <div key={node.label} className={styles["flow-node-wrap"]}>
+            <div className={styles["flow-node"]}>
+              <div className={styles["flow-node-circle"]}>
+                <span className={styles["flow-node-index"]}>{String(i+1).padStart(2,"0")}</span>
+              </div>
+              <div className={styles["flow-node-text"]}>
+                <span className={styles["flow-node-label"]}>{node.label}</span>
+                <span className={styles["flow-node-sub"]}>{node.sub}</span>
+              </div>
             </div>
-            <div className={styles["flow-node-text"]}>
-              <span className={styles["flow-node-label"]}>{node.label}</span>
-              <span className={styles["flow-node-sub"]}>{node.sub}</span>
-            </div>
+            {i < FLOW_NODES.length - 1 && (
+              <div className={styles["flow-connector"]}>
+                <div className={styles["flow-connector-line"]} />
+                <svg width="8" height="5" viewBox="0 0 8 5">
+                  <path d="M0 0 L4 5 L8 0" fill="none" stroke="currentColor" strokeWidth="1"/>
+                </svg>
+              </div>
+            )}
           </div>
-          {i < FLOW_NODES.length - 1 && (
-            <div className={styles["flow-connector"]}>
-              <div className={styles["flow-connector-line"]} />
-              <svg width="8" height="5" viewBox="0 0 8 5" className={styles["flow-connector-arrow"]}>
-                <path d="M0 0 L4 5 L8 0" fill="none" stroke="currentColor" strokeWidth="1" />
-              </svg>
-            </div>
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
+// S02 — Evolution branch
 const EVO_NODES = [
-  { label: "Biology",               year: "~3.8B BCE", desc: "Brains built by natural selection" },
-  { label: "Language",              year: "~70,000 BCE", desc: "Knowledge shared across generations" },
-  { label: "Civilization",          year: "~5,000 BCE", desc: "Written memory and shared institutions" },
-  { label: "Industrial Systems",    year: "1760 CE",    desc: "Machines extend physical capacity" },
-  { label: "Digital Networks",      year: "1990 CE",    desc: "Global information access" },
-  { label: "Artificial Intelligence", year: "Present",  desc: "Intelligence outside biology" },
+  { label:"Biology",     year:"~3.8B BCE",  desc:"Brains built by natural selection"    },
+  { label:"Language",    year:"~70,000 BCE", desc:"Knowledge across generations"         },
+  { label:"Civilization",year:"~5,000 BCE",  desc:"Written memory, shared institutions"  },
+  { label:"Industry",    year:"1760 CE",     desc:"Machines extend physical capacity"    },
+  { label:"Digital",     year:"1990 CE",     desc:"Global information access"            },
+  { label:"AI",          year:"Present",     desc:"Intelligence outside biology"         },
 ];
-
-const EVOx = [36, 76, 116, 156, 196, 236];
-const EVOy = [28, 92, 156, 220, 284, 348];
-const SVG_W = 340;
-const SVG_H = 380;
-
+const EVO_POS = [{x:16,y:10},{x:30,y:26},{x:46,y:42},{x:60,y:58},{x:74,y:74},{x:88,y:90}];
 function EvoBranchDiagram() {
+  const tx = (n:number) => (n/100)*360;
+  const ty = (n:number) => (n/100)*360;
   return (
-    <div className={styles["evo-diagram-wrap"]}>
-      <svg
-        viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-        width="100%"
-        className={styles["evo-svg"]}
-        role="img"
-        aria-label="Evolution of intelligence branching diagram"
-      >
-        {EVO_NODES.slice(0, -1).map((_, i) => (
-          <line
-            key={i}
-            x1={EVOx[i]}     y1={EVOy[i]}
-            x2={EVOx[i + 1]} y2={EVOy[i + 1]}
-            stroke="#9CA3AF"
-            strokeWidth="1"
-          />
+    <div className={styles["diagram-float"]}>
+      <svg viewBox="0 0 360 360" width="100%" style={{maxWidth:320,display:"block",margin:"0 auto"}}>
+        {EVO_POS.slice(0,-1).map((_,i)=>(
+          <line key={i} x1={tx(EVO_POS[i].x)} y1={ty(EVO_POS[i].y)}
+            x2={tx(EVO_POS[i+1].x)} y2={ty(EVO_POS[i+1].y)}
+            stroke="#4B6A9A" strokeWidth="1.2" strokeOpacity="0.5"/>
         ))}
-
-        {EVO_NODES.map((node, i) => (
-          <g key={node.label} className={styles["evo-node-g"]} aria-label={`${node.label}: ${node.year} — ${node.desc}`}>
-            <rect
-              x={EVOx[i] - 10} y={EVOy[i] - 10}
-              width={SVG_W - EVOx[i]}
-              height={20}
-              fill="transparent"
-            />
-            <circle
-              cx={EVOx[i]} cy={EVOy[i]}
-              r={5}
-              fill="#F4F5F7"
-              stroke="#6B7280"
-              strokeWidth="1"
-              className={styles["evo-circle"]}
-            />
-            <text
-              x={EVOx[i] + 16} y={EVOy[i] - 1}
-              fontSize="12"
-              fill="#1C1F24"
-              fontFamily="Georgia, serif"
-              className={styles["evo-label"]}
-            >
-              {node.label}
-            </text>
-            <text
-              x={EVOx[i] + 16} y={EVOy[i] + 12}
-              fontSize="9"
-              fill="#6B7280"
-              fontFamily="sans-serif"
-              letterSpacing="0.08em"
-              textDecoration="uppercase"
-            >
-              {node.year}
-            </text>
-          </g>
-        ))}
-      </svg>
-    </div>
-  );
-}
-
-const PRED_LAYERS = [
-  { label: "Sensory Input",       note: "~11M bits/sec received" },
-  { label: "Neural Filtering",    note: "~40 bits/sec conscious" },
-  { label: "Predictive Modeling", note: "Prior expectations applied" },
-  { label: "Contextual Framing",  note: "Memory + emotion weighting" },
-  { label: "Perceived World",     note: "Constructed representation" },
-];
-
-function PredictiveStack() {
-  return (
-    <div className={styles["pred-stack"]}>
-      <span className={styles["pred-stack-label"]}>How perception is built</span>
-      {PRED_LAYERS.map((layer, i) => (
-        <div key={layer.label} className={styles["pred-layer-wrap"]}>
-          <div className={styles["pred-layer"]}>
-            <span className={styles["pred-layer-name"]}>{layer.label}</span>
-            <span className={styles["pred-layer-note"]}>{layer.note}</span>
-          </div>
-          {i < PRED_LAYERS.length - 1 && (
-            <div className={styles["pred-arrow"]}>
-              <svg width="1" height="18" viewBox="0 0 1 18">
-                <line x1="0.5" y1="0" x2="0.5" y2="12" stroke="#9CA3AF" strokeWidth="1" />
-                <path d="M-2.5 10 L0.5 14 L3.5 10" fill="none" stroke="#9CA3AF" strokeWidth="1" />
-              </svg>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const LOOP_NODES = [
-  { label: "Environment", angle: -90 },
-  { label: "Brain",       angle: 0   },
-  { label: "Model",       angle: 90  },
-  { label: "Self",        angle: 180 },
-];
-const R = 72;
-const CX = 120;
-const CY = 120;
-const NR = 7;
-
-function nodePos(angleDeg: number) {
-  const rad = (angleDeg * Math.PI) / 180;
-  return {
-    x: CX + R * Math.cos(rad),
-    y: CY + R * Math.sin(rad),
-  };
-}
-
-function arcPath(fromAngle: number, toAngle: number): string {
-  const startRad = (fromAngle * Math.PI) / 180;
-  const endRad   = (toAngle   * Math.PI) / 180;
-  const offset   = (NR + 3) / R;
-  const aStart   = startRad + offset;
-  const aEnd     = endRad   - offset;
-  const sx = CX + R * Math.cos(aStart);
-  const sy = CY + R * Math.sin(aStart);
-  const ex = CX + R * Math.cos(aEnd);
-  const ey = CY + R * Math.sin(aEnd);
-  return `M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${R} ${R} 0 0 1 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
-}
-
-function ConsciousnessLoop() {
-  const angles = LOOP_NODES.map((n) => n.angle);
-
-  return (
-    <div className={styles["c-loop-wrap"]}>
-      <svg
-        viewBox="0 0 240 240"
-        width="240"
-        height="240"
-        className={styles["c-loop-svg"]}
-        role="img"
-        aria-label="Consciousness loop: Environment, Brain, Model, Self"
-      >
-        <defs>
-          <marker
-            id="loop-arrow"
-            markerWidth="5"
-            markerHeight="5"
-            refX="4"
-            refY="2.5"
-            orient="auto"
-          >
-            <path d="M0,0.5 L4,2.5 L0,4.5" fill="none" stroke="#9CA3AF" strokeWidth="1" />
-          </marker>
-        </defs>
-
-        <circle
-          cx={CX} cy={CY} r={R}
-          fill="none"
-          stroke="#D1D5DB"
-          strokeWidth="1"
-          strokeDasharray="3 5"
-          className={styles["c-loop-track"]}
-        />
-
-        {angles.map((fromAngle, i) => {
-          const toAngle = angles[(i + 1) % angles.length] + (i === angles.length - 1 ? 360 : 0);
+        {EVO_NODES.map((n,i)=>{
+          const px=tx(EVO_POS[i].x), py=ty(EVO_POS[i].y);
           return (
-            <path
-              key={i}
-              d={arcPath(fromAngle, toAngle)}
-              fill="none"
-              stroke="#9CA3AF"
-              strokeWidth="1"
-              markerEnd="url(#loop-arrow)"
-            />
-          );
-        })}
-
-        {LOOP_NODES.map((node) => {
-          const { x, y } = nodePos(node.angle);
-          const lx = CX + (R + 22) * Math.cos((node.angle * Math.PI) / 180);
-          const ly = CY + (R + 22) * Math.sin((node.angle * Math.PI) / 180);
-          const anchor =
-            node.angle === 0   ? "start"
-            : node.angle === 180 ? "end"
-            : "middle";
-          return (
-            <g key={node.label}>
-              <circle
-                cx={x} cy={y} r={NR}
-                fill="#ECEFF2"
-                stroke="#6B7280"
-                strokeWidth="1"
-              />
-              <text
-                x={lx} y={ly}
-                fontSize="10"
-                fontFamily="sans-serif"
-                fill="#4B5563"
-                textAnchor={anchor}
-                dominantBaseline="middle"
-                letterSpacing="0.04em"
-              >
-                {node.label}
-              </text>
+            <g key={n.label}>
+              <circle cx={px} cy={py} r={10} fill="none" stroke="#6A9ACA" strokeWidth="0.8" strokeOpacity="0.25"/>
+              <circle cx={px} cy={py} r={5} fill="#1a2c4a" stroke="#7BAAD4" strokeWidth="1.2"/>
+              <text x={px+14} y={py-2} fontSize="12" fill="#D0E4F7" fontFamily="Georgia,serif">{n.label}</text>
+              <text x={px+14} y={py+12} fontSize="9" fill="#7BAAD4" fontFamily="sans-serif" letterSpacing="0.05em">{n.year}</text>
+              <text x={px+14} y={py+24} fontSize="8" fill="#5a7898" fontFamily="sans-serif" fontStyle="italic">{n.desc}</text>
             </g>
           );
         })}
@@ -265,147 +163,283 @@ function ConsciousnessLoop() {
   );
 }
 
+// S03 — Predictive stack
+const PRED_LAYERS = [
+  { label:"Sensory Input",       note:"~11M bits/sec received"      },
+  { label:"Neural Filtering",    note:"~40 bits/sec reach awareness" },
+  { label:"Predictive Modeling", note:"Priors override raw data"    },
+  { label:"Contextual Framing",  note:"Memory + emotion applied"    },
+  { label:"Perceived World",     note:"A construction, not a copy"  },
+];
+function PredictiveStack() {
+  return (
+    <div className={styles["diagram-float"]}>
+      <div className={styles["pred-stack"]}>
+        <span className={styles["pred-stack-label"]}>How the brain builds reality</span>
+        {PRED_LAYERS.map((layer, i) => (
+          <div key={layer.label} className={styles["pred-layer-wrap"]}>
+            <div className={styles["pred-layer"]}>
+              <span className={styles["pred-layer-name"]}>{layer.label}</span>
+              <span className={styles["pred-layer-note"]}>{layer.note}</span>
+            </div>
+            {i < PRED_LAYERS.length - 1 && (
+              <div className={styles["pred-arrow"]}>
+                <svg width="1" height="16" viewBox="0 0 1 16">
+                  <line x1="0.5" y1="0" x2="0.5" y2="10" stroke="#4A7AAA" strokeWidth="1"/>
+                  <path d="M-2.5 8 L0.5 12 L3.5 8" fill="none" stroke="#4A7AAA" strokeWidth="1"/>
+                </svg>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// S04 — Belief map
+const BELIEF_ROWS = [
+  { q:"Why does anything exist?",  answers:["Divine creation","Eternal cycle","Brute fact","Unknown"]       },
+  { q:"What happens when we die?", answers:["Soul persists","Rebirth","Return to matter","Uncertain"]       },
+  { q:"How should we live?",       answers:["Divine law","Dharma / duty","Reason & virtue","Self-chosen"]   },
+  { q:"What is the self?",         answers:["Unique soul","Illusion","Social construct","Open question"]    },
+];
+const TRADITION_LABELS = ["Abrahamic","Dharmic","Secular","Philosophy"];
+function BeliefMap() {
+  return (
+    <div className={styles["diagram-float"]}>
+      <p className={styles["belief-map-title"]}>Same questions. Different answers.</p>
+      <div className={styles["belief-table"]}>
+        <div className={styles["belief-table-head"]}>
+          <div className={styles["belief-q-cell"]} />
+          {TRADITION_LABELS.map(t=><div key={t} className={styles["belief-t-cell"]}>{t}</div>)}
+        </div>
+        {BELIEF_ROWS.map((row,i)=>(
+          <div key={i} className={styles["belief-table-row"]}>
+            <div className={styles["belief-q-cell"]}>{row.q}</div>
+            {row.answers.map((a,j)=><div key={j} className={styles["belief-a-cell"]}>{a}</div>)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// S05 — Consciousness loop
+const LOOP_NODES = [
+  { label:"Environment", angle:-90 },
+  { label:"Brain",       angle:  0 },
+  { label:"Model",       angle: 90 },
+  { label:"Self",        angle:180 },
+];
+const LR=100, LCX=160, LCY=160, LNR=9;
+function lnPos(deg:number){const r=(deg*Math.PI)/180;return{x:LCX+LR*Math.cos(r),y:LCY+LR*Math.sin(r)};}
+function lnArc(f:number,t:number){
+  const sr=(f*Math.PI)/180, er=(t*Math.PI)/180, off=(LNR+5)/LR;
+  const sx=LCX+LR*Math.cos(sr+off), sy=LCY+LR*Math.sin(sr+off);
+  const ex=LCX+LR*Math.cos(er-off), ey=LCY+LR*Math.sin(er-off);
+  return `M${sx.toFixed(1)} ${sy.toFixed(1)} A${LR} ${LR} 0 0 1 ${ex.toFixed(1)} ${ey.toFixed(1)}`;
+}
+function ConsciousnessLoop() {
+  const angles = LOOP_NODES.map(n=>n.angle);
+  return (
+    <div className={styles["diagram-float"]}>
+      <svg viewBox="0 0 320 320" width="100%" style={{maxWidth:300,display:"block",margin:"0 auto"}}>
+        <defs>
+          <marker id="loop-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0.5 L5,3 L0,5.5" fill="none" stroke="#7BAAD4" strokeWidth="1.2"/>
+          </marker>
+        </defs>
+        <circle cx={LCX} cy={LCY} r={LR} fill="none" stroke="#1a3050" strokeWidth="1" strokeDasharray="4 6"/>
+        {angles.map((fromA,i)=>{
+          const toA=angles[(i+1)%angles.length]+(i===angles.length-1?360:0);
+          return <path key={i} d={lnArc(fromA,toA)} fill="none" stroke="#4A7AAA" strokeWidth="1.5" markerEnd="url(#loop-arrow)"/>;
+        })}
+        {angles.map((fromA,i)=>{
+          const toA=angles[(i+1)%angles.length]+(i===angles.length-1?360:0);
+          return (
+            <g key={`d${i}`}>
+              <path id={`la${i}`} d={lnArc(fromA,toA)} fill="none" stroke="none"/>
+              <circle r="3.5" fill="#7BAAD4" opacity="0.9">
+                <animateMotion dur="2.8s" begin={`${i*0.7}s`} repeatCount="indefinite">
+                  <mpath href={`#la${i}`}/>
+                </animateMotion>
+              </circle>
+            </g>
+          );
+        })}
+        {LOOP_NODES.map(node=>{
+          const{x,y}=lnPos(node.angle);
+          const lx=LCX+(LR+32)*Math.cos((node.angle*Math.PI)/180);
+          const ly=LCY+(LR+32)*Math.sin((node.angle*Math.PI)/180);
+          const anchor=node.angle===0?"start":node.angle===180?"end":"middle";
+          return (
+            <g key={node.label}>
+              <circle cx={x} cy={y} r={LNR+5} fill="none" stroke="#4A7AAA" strokeWidth="0.8" opacity="0.3"/>
+              <circle cx={x} cy={y} r={LNR} fill="#0e2040" stroke="#7BAAD4" strokeWidth="1.5"/>
+              <text x={lx} y={ly} fontSize="11" fontFamily="sans-serif" fill="#A0C4E8"
+                textAnchor={anchor} dominantBaseline="middle" letterSpacing="0.04em">{node.label}</text>
+            </g>
+          );
+        })}
+        <text x={LCX} y={LCY-5} fontSize="8" fill="#3A6080" textAnchor="middle" fontFamily="sans-serif" letterSpacing="0.1em">PERCEPTION</text>
+        <text x={LCX} y={LCY+7} fontSize="8" fill="#3A6080" textAnchor="middle" fontFamily="sans-serif" letterSpacing="0.1em">LOOP</text>
+      </svg>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE
+// ─────────────────────────────────────────────────────────────────────────────
 export default function ReflectionsPage() {
+  const containerRef = useRef<HTMLDivElement|null>(null);
+  const [activeSection, setActiveSection] = useState(0);
+
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const revealEls = document.querySelectorAll(`.${styles.reveal}`);
-    const revealObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add(styles.visible);
-            revealObserver.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
-    );
-    revealEls.forEach((el) => revealObserver.observe(el));
-
-    const cLabel    = document.getElementById("c-label");
-    const cLines    = document.querySelectorAll(`.${styles["c-line"]}`);
-    const cFootnote = document.getElementById("c-footnote");
-    const cSection  = document.getElementById("consciousness");
-
-    if (cSection) {
-      const cObserver = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              if (cLabel) cLabel.classList.add(styles.visible);
-              cLines.forEach((line, i) => {
-                setTimeout(() => line.classList.add(styles.visible), i * 300);
-              });
-              setTimeout(
-                () => { if (cFootnote) cFootnote.classList.add(styles.visible); },
-                cLines.length * 300 + 300
-              );
-              cObserver.unobserve(entry.target);
-            }
-          });
-        },
+    const obs = NAV_SECTIONS.map((s,i) => {
+      const el = document.getElementById(s.id);
+      if (!el) return null;
+      const o = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveSection(i); },
         { threshold: 0.3 }
       );
-      cObserver.observe(cSection);
-    }
+      o.observe(el);
+      return o;
+    });
+    return () => obs.forEach(o=>o?.disconnect());
+  }, []);
 
-    const expandCards = document.querySelectorAll(`.${styles["expand-card"]}`);
-    const handleCardClick = (e: Event) => {
+  useLayoutEffect(() => {
+    gsap.registerPlugin(ScrollTrigger);
+    const ctx = gsap.context(() => {
+
+      // Word-by-word scroll reveal
+      document.querySelectorAll<HTMLElement>(`.${styles["word-block"]}`).forEach(block => {
+        const words = block.querySelectorAll<HTMLElement>(`.${styles.word}`);
+        if (!words.length) return;
+        gsap.fromTo(words,
+          { opacity:0.06, y:6, filter:"blur(2px)" },
+          { opacity:1, y:0, filter:"blur(0px)", stagger:0.035, ease:"none",
+            scrollTrigger: { trigger:block, start:"top 82%", end:"bottom 38%", scrub:0.5 } }
+        );
+      });
+
+      // Section headers slide up
+      gsap.utils.toArray<Element>(`.${styles["cin-header"]}`).forEach(el => {
+        gsap.from(el, { opacity:0, y:24, duration:0.9, ease:"power3.out",
+          scrollTrigger: { trigger:el, start:"top 86%", toggleActions:"play none none none" } });
+      });
+
+      // Curiosity lines slide in
+      gsap.utils.toArray<Element>(`.${styles["curiosity-line"]}`).forEach(el => {
+        gsap.from(el, { opacity:0, x:-16, duration:0.7, ease:"power2.out",
+          scrollTrigger: { trigger:el, start:"top 88%", toggleActions:"play none none none" } });
+      });
+
+      // Diagrams float up
+      gsap.utils.toArray<Element>(`.${styles["diagram-float"]}`).forEach(el => {
+        gsap.from(el, { opacity:0, y:36, duration:1.0, ease:"power2.out",
+          scrollTrigger: { trigger:el, start:"top 84%", toggleActions:"play none none none" } });
+      });
+
+      // Gold line draws
+      gsap.utils.toArray<Element>(`.${styles["gold-line"]}`).forEach(el => {
+        gsap.from(el, { scaleX:0, transformOrigin:"left center", duration:0.7, ease:"power2.out",
+          scrollTrigger: { trigger:el, start:"top 90%", toggleActions:"play none none none" } });
+      });
+
+      // Consciousness c-lines stagger
+      const cSection = document.getElementById("consciousness");
+      if (cSection) {
+        gsap.to(cSection.querySelectorAll(`.${styles["c-line"]}`), {
+          opacity:1, y:0, stagger:0.16, duration:0.8, ease:"power2.out",
+          scrollTrigger: { trigger:cSection, start:"top 64%", toggleActions:"play none none none" }
+        });
+      }
+
+      // Questions list stagger
+      gsap.from(document.querySelectorAll(`.${styles["q-item"]}`), {
+        opacity:0, x:-16, stagger:0.07, duration:0.55, ease:"power2.out",
+        scrollTrigger: { trigger:`.${styles["questions-list"]}`, start:"top 82%", toggleActions:"play none none none" }
+      });
+
+      // Hero portrait parallax
+      const portrait = document.querySelector("[data-hero-portrait]");
+      if (portrait && !window.matchMedia("(max-width:900px)").matches) {
+        gsap.fromTo(portrait, { y:0 }, { y:38, ease:"none",
+          scrollTrigger: { trigger:"#hero", start:"top top", end:"bottom top", scrub:true } });
+      }
+
+    }, containerRef);
+    return () => ctx.revert();
+  }, []);
+
+  useEffect(() => {
+    const cards = document.querySelectorAll<HTMLElement>(`.${styles["expand-card"]}`);
+    const onClick = (e:Event) => {
       const card = e.currentTarget as HTMLElement;
       const wasOpen = card.classList.contains(styles.open);
-      expandCards.forEach((c) => c.classList.remove(styles.open));
+      cards.forEach(c=>c.classList.remove(styles.open));
       if (!wasOpen) card.classList.add(styles.open);
     };
-    expandCards.forEach((card) => card.addEventListener("click", handleCardClick));
-
-    const heroRight = document.querySelector("[data-hero-right]") as HTMLElement | null;
-    const isMobile = window.matchMedia("(max-width: 900px)").matches;
-    const handleParallax = () => {
-      if (!heroRight || isMobile) return;
-      const scrollY = window.scrollY;
-      if (scrollY < window.innerHeight) {
-        heroRight.style.transform = `translateY(${scrollY * 0.04}px)`;
-      }
-    };
-    window.addEventListener("scroll", handleParallax, { passive: true });
-
-    return () => {
-      revealObserver.disconnect();
-      window.removeEventListener("scroll", handleParallax);
-      expandCards.forEach((card) => card.removeEventListener("click", handleCardClick));
-    };
+    cards.forEach(c=>c.addEventListener("click",onClick));
+    return () => cards.forEach(c=>c.removeEventListener("click",onClick));
   }, []);
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} ref={containerRef}>
+      <GlobalBackground />
+      <NavDots active={activeSection} />
 
-      {/* ══════════════════ HERO ══════════════════ */}
-      <section id="hero" className={styles.hero}>
-        <div className={styles["hero-left"]}>
-          <p className={styles["hero-eyebrow"]}>A Personal Reflection</p>
-          <h1 className={styles["hero-title"]}>
-            Human<br />Reflections
-          </h1>
-          <p className={styles["hero-subtitle"]}>
-            Thinking beyond my professional work.
-          </p>
-          <div className={styles["hero-divider"]} />
-          <div className={styles["hero-body"]}>
-            <p>
-              My work is in engineered systems — where precision and structure
-              matter. I find myself applying that same approach to much larger
-              questions.
-            </p>
-            <p>
-              <span className={styles.highlight}>
-                How did life begin from chemistry? How does the brain produce
-                what we call reality? Why do we experience anything at all?
-              </span>
-            </p>
-            <p>
-              This is not a journal. It is a record of how I think about
-              questions that cross many fields — and still don't have clean
-              answers.
-            </p>
-          </div>
+      {/* ══════════════════════════════════════════════
+          HERO — The Observer
+      ══════════════════════════════════════════════ */}
+      <section id="hero" className={`${styles["cin-section"]} ${styles.hero}`}>
+        <div className={styles["cin-hero-inner"]}>
 
-          <div className={styles["hero-meta"]}>
-            <div className={styles["hero-meta-item"]}>
-              <span className={styles["hero-meta-label"]}>Location</span>
-              <span className={styles["hero-meta-value"]}>Earth</span>
-            </div>
-            <div className={styles["hero-meta-dot"]} />
-            <div className={styles["hero-meta-item"]}>
-              <span className={styles["hero-meta-label"]}>Time</span>
-              <span className={styles["hero-meta-value"]}>~13.8B years post-origin</span>
-            </div>
-            <div className={styles["hero-meta-dot"]} />
-            <div className={styles["hero-meta-item"]}>
-              <span className={styles["hero-meta-label"]}>Mode</span>
-              <span className={styles["hero-meta-value"]}>Observing</span>
+          <div className={styles["hero-portrait-wrap"]} data-hero-portrait>
+            <div className={styles["hero-portrait-frame"]}>
+              <Image src="/images/naveen-portrait.png" alt="Naveen" fill priority
+                sizes="(max-width:900px) 40vw, 200px"
+                style={{ objectFit:"cover", filter:"grayscale(100%) brightness(0.72)" }}/>
+              <div className={styles["hero-portrait-vignette"]} />
             </div>
           </div>
-        </div>
 
-        <div className={styles["hero-right"]} data-hero-right>
-          <div className={styles["portrait-frame"]}>
-            <div className={styles["portrait-img"]}>
-              <div className={styles["portrait-placeholder"]}>
-              <Image
-                src="/images/naveen-portrait.png"
-                alt="Naveen portrait"
-                fill
-                priority
-               sizes="(max-width: 900px) 60vw, 380px"
-               style={{
-                 objectFit: "cover",
-                 filter: "grayscale(100%)",
-               }}
-               />
+          <div className={styles["cin-hero-text"]}>
+            <span className={styles["section-label"]}>A Personal Reflection</span>
+            <h1 className={styles["hero-title"]}>Human<br />Reflections</h1>
+            <div className={styles["gold-line"]} style={{marginBottom:"22px"}} />
+
+            <div className={`${styles["word-block"]} ${styles["hero-body"]}`}>
+              <p>
+                <WordSplit text="hi this is naveen, I often find myself thinking about questions that don't have simple answers.Questions about life, consciousness, evolution, and the universe we exist in.This page is simply a place to explore those reflections.This page exists because some questions don't fit neatly into work or daily life — but they don't go away either. Questions about where life comes from, what the brain is actually doing, why we build meaning, and what we are inside all of it." />
+              </p>
+              <p>
+                <WordSplit text="I'm not offering final answers. I'm simply exploring what it means to observe and think — to sit with questions that remain open and find that worthwhile in itself." />
+              </p>
+              <p>
+                <WordSplit text="My work is in engineered systems, where precision and structure matter. I find myself applying that same approach to much larger questions — not to solve them, but to see them more clearly." className={styles.highlight} />
+              </p>
+            </div>
+
+            <div className={styles["hero-meta"]}>
+              <div className={styles["hero-meta-item"]}>
+                <span className={styles["hero-meta-label"]}>Location</span>
+                <span className={styles["hero-meta-value"]}>Earth</span>
+              </div>
+              <div className={styles["hero-meta-dot"]} />
+              <div className={styles["hero-meta-item"]}>
+                <span className={styles["hero-meta-label"]}>Time</span>
+                <span className={styles["hero-meta-value"]}>~13.8B years post-origin</span>
+              </div>
+              <div className={styles["hero-meta-dot"]} />
+              <div className={styles["hero-meta-item"]}>
+                <span className={styles["hero-meta-label"]}>Mode</span>
+                <span className={styles["hero-meta-value"]}>Observing</span>
               </div>
             </div>
-            <p className={styles["portrait-caption"]}>— The Observer</p>
           </div>
         </div>
 
@@ -415,699 +449,295 @@ export default function ReflectionsPage() {
         </div>
       </section>
 
-      {/* ══════════════════ SECTION 01 — WHAT IS LIFE ══════════════════ */}
-      <section id="life" className={styles.life}>
+      {/* ══════════════════════════════════════════════
+          SECTION 01 — What Is Life?
+      ══════════════════════════════════════════════ */}
+      <section id="life" className={styles["cin-section"]}>
         <span className={styles["section-index"]}>01</span>
-        <div className={styles.container}>
-          <div className={`${styles["life-header"]} ${styles.reveal}`}>
-            <span className={styles["section-label"]}>Section 01</span>
-            <h2 className={styles["section-title"]}>What Is Life?</h2>
-            <p className={styles["section-subtitle"]}>From Physics to Biology</p>
-            <span className={styles["gold-line"]} />
-            <div className={styles["framework-line"]}>
-              <span className={styles["framework-term"]}>Physics</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>Chemistry</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>Biology</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>Evolution</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>Consciousness</span>
-            </div>
-          </div>
-
-          <div className={styles["life-grid"]}>
-            <div className={styles["life-blocks"]}>
-              <div className={`${styles["life-block"]} ${styles.reveal} ${styles["reveal-delay-1"]}`}>
-                <div className={styles["life-block-number"]}>01 / Cosmic Origins</div>
-                <h3 className={styles["life-block-title"]}>Cosmic Origins</h3>
-                <p className={styles["life-block-text"]}>
-                  The atoms inside every living thing — carbon, nitrogen, oxygen,
-                  phosphorus — were made inside stars. When I think about that, life
-                  stops feeling like a separate category. It is physics, just further
-                  along.
-                </p>
-              </div>
-              <div className={`${styles["life-block"]} ${styles.reveal} ${styles["reveal-delay-2"]}`}>
-                <div className={styles["life-block-number"]}>02 / Chemical Emergence</div>
-                <h3 className={styles["life-block-title"]}>Chemical Emergence</h3>
-                <p className={styles["life-block-text"]}>
-                  At some point, molecules started copying themselves and using
-                  energy to stay organized. That was the crossing point — from
-                  chemistry to biology. No new laws were needed. Only the right
-                  conditions and enough time.
-                </p>
-              </div>
-              <div className={`${styles["life-block"]} ${styles.reveal} ${styles["reveal-delay-3"]}`}>
-                <div className={styles["life-block-number"]}>03 / Cellular Life</div>
-                <h3 className={styles["life-block-title"]}>Cellular Life</h3>
-                <p className={styles["life-block-text"]}>
-                  A single cell does everything we associate with being alive: it
-                  stores information, replicates, uses energy, and responds to its
-                  environment. A bacterium runs thousands of reactions at once just
-                  to hold itself together.
-                </p>
-              </div>
-              <div className={`${styles["life-block"]} ${styles.reveal} ${styles["reveal-delay-4"]}`}>
-                <div className={styles["life-block-number"]}>04 / Evolutionary Complexity</div>
-                <h3 className={styles["life-block-title"]}>Evolutionary Complexity</h3>
-                <p className={styles["life-block-text"]}>
-                  Natural selection has no goal. It keeps what works and discards
-                  what doesn't — generation after generation. Over billions of years,
-                  this produced immune systems, eyes, and eventually brains that can
-                  model the world around them.
-                </p>
-              </div>
-              <div className={`${styles["life-block"]} ${styles.reveal} ${styles["reveal-delay-5"]}`}>
-                <div className={styles["life-block-number"]}>05 / Conscious Awareness</div>
-                <h3 className={styles["life-block-title"]}>Conscious Awareness</h3>
-                <p className={styles["life-block-text"]}>
-                  At some point, brains became complex enough to model themselves.
-                  Whether that inner experience is a product of information
-                  processing — or something else — is still the deepest open
-                  question in science.
-                </p>
-              </div>
-            </div>
-
-            <div className={`${styles["life-visual"]} ${styles.reveal} ${styles["reveal-delay-2"]}`}>
-              <LifeFlowDiagram />
-              <span className={styles["life-visual-label"]}>
-                Matter · Energy · Information
-              </span>
-            </div>
-          </div>
-
-          <div className={`${styles["obs-block"]} ${styles.reveal} ${styles["reveal-delay-3"]}`}>
-            <span className={styles["obs-label"]}>Observation</span>
-            <p className={styles["obs-text"]}>
-              Life is matter that holds itself together by consuming energy. It
-              copies itself. It adapts. The move from chemistry to biology did
-              not need a miracle — just the right starting point and time to
-              run.
-            </p>
-            <p className={styles["cross-connect"]}>
-              The same processes that produced cells eventually produced brains.
-              And brains produced everything that follows in this page.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ SECTION 02 — EVOLUTION OF INTELLIGENCE ══════════════════ */}
-      <section id="evolution" className={styles.evolution}>
-        <span className={styles["section-index"]}>02</span>
-        <div className={styles.container}>
-          <div className={`${styles["evolution-header"]} ${styles.reveal}`}>
-            <span className={styles["section-label"]}>Section 02</span>
-            <h2 className={styles["section-title"]}>Evolution of Intelligence</h2>
-            <p className={styles["section-subtitle"]}>From Instinct to Artificial Cognition</p>
-            <span className={styles["gold-line"]} />
-            <div className={`${styles["framework-line"]} ${styles["framework-line-center"]}`}>
-              <span className={styles["framework-term"]}>Biology</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>Language</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>Civilization</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>Technology</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>AI</span>
-            </div>
-          </div>
-
-          <div className={`${styles.reveal} ${styles["reveal-delay-1"]}`}>
-            <EvoBranchDiagram />
-          </div>
-        </div>
-
-        <div className={`${styles["timeline-wrapper"]} ${styles.reveal} ${styles["reveal-delay-2"]}`}>
-          <div className={styles.timeline}>
-
-            <div className={styles["timeline-node"]}>
-              <div className={styles["node-card"]}>
-                <div className={styles["node-card-title"]}>Biological Evolution</div>
-                <p className={styles["node-card-text"]}>
-                  Over 3.8 billion years, selection built increasingly capable
-                  nervous systems — from simple reflexes to brains that plan,
-                  imagine, and reason about themselves.
-                </p>
-              </div>
-              <div className={styles["node-dot-wrapper"]}>
-                <div className={styles["node-dot"]} />
-                <div className={styles["node-year"]}>~3.8B BCE</div>
-                <div className={styles["node-title"]}>Biological Evolution</div>
-              </div>
-            </div>
-
-            <div className={styles["timeline-node"]}>
-              <div className={styles["node-card"]}>
-                <div className={styles["node-card-title"]}>Language</div>
-                <p className={styles["node-card-text"]}>
-                  Language meant ideas could leave one mind and enter another.
-                  Knowledge became cumulative — the first system of inheritance
-                  that didn't require DNA.
-                </p>
-              </div>
-              <div className={styles["node-dot-wrapper"]}>
-                <div className={styles["node-dot"]} />
-                <div className={styles["node-year"]}>~70,000 BCE</div>
-                <div className={styles["node-title"]}>Language</div>
-              </div>
-            </div>
-
-            <div className={styles["timeline-node"]}>
-              <div className={styles["node-card"]}>
-                <div className={styles["node-card-title"]}>Civilization</div>
-                <p className={styles["node-card-text"]}>
-                  Writing gave knowledge a permanent form. Cities and agriculture
-                  built systems large enough to hold what no single person could
-                  carry or remember.
-                </p>
-              </div>
-              <div className={styles["node-dot-wrapper"]}>
-                <div className={styles["node-dot"]} />
-                <div className={styles["node-year"]}>~5,000 BCE</div>
-                <div className={styles["node-title"]}>Civilization</div>
-              </div>
-            </div>
-
-            <div className={styles["timeline-node"]}>
-              <div className={styles["node-card"]}>
-                <div className={styles["node-card-title"]}>Industrial Age</div>
-                <p className={styles["node-card-text"]}>
-                  Machines extended physical capacity. The printing press made
-                  ideas cheap to copy and fast to move — compressing the time
-                  it took for knowledge to spread.
-                </p>
-              </div>
-              <div className={styles["node-dot-wrapper"]}>
-                <div className={styles["node-dot"]} />
-                <div className={styles["node-year"]}>1760 CE</div>
-                <div className={styles["node-title"]}>Industrial Age</div>
-              </div>
-            </div>
-
-            <div className={styles["timeline-node"]}>
-              <div className={styles["node-card"]}>
-                <div className={styles["node-card-title"]}>Digital Era</div>
-                <p className={styles["node-card-text"]}>
-                  The internet made most of recorded human knowledge available
-                  to anyone, instantly, from anywhere. The cost of accessing
-                  information dropped to nearly zero.
-                </p>
-              </div>
-              <div className={styles["node-dot-wrapper"]}>
-                <div className={styles["node-dot"]} />
-                <div className={styles["node-year"]}>1990 CE</div>
-                <div className={styles["node-title"]}>Digital Era</div>
-              </div>
-            </div>
-
-            <div className={styles["timeline-node"]}>
-              <div className={styles["node-card"]}>
-                <div className={styles["node-card-title"]}>Artificial Intelligence</div>
-                <p className={styles["node-card-text"]}>
-                  Systems now read, reason, and generate language without a
-                  biological brain behind them. What counts as intelligence is
-                  becoming harder to define.
-                </p>
-              </div>
-              <div className={styles["node-dot-wrapper"]}>
-                <div className={styles["node-dot"]} />
-                <div className={styles["node-year"]}>Present</div>
-                <div className={styles["node-title"]}>Artificial Intelligence</div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <div className={styles.container}>
-          <div className={`${styles["timeline-mobile"]} ${styles.reveal} ${styles["reveal-delay-1"]}`}>
-            <div className={styles["mobile-node"]}>
-              <div className={styles["mobile-node-year"]}>~3.8B BCE</div>
-              <div className={styles["mobile-node-title"]}>Biological Evolution</div>
-              <p className={styles["mobile-node-text"]}>
-                Selection shaped nervous systems over billions of years —
-                producing brains capable of planning and abstract thought.
-              </p>
-            </div>
-            <div className={styles["mobile-node"]}>
-              <div className={styles["mobile-node-year"]}>~70,000 BCE</div>
-              <div className={styles["mobile-node-title"]}>Language</div>
-              <p className={styles["mobile-node-text"]}>
-                Language let knowledge grow beyond one person's lifetime.
-                It made thinking a shared, cumulative process.
-              </p>
-            </div>
-            <div className={styles["mobile-node"]}>
-              <div className={styles["mobile-node-year"]}>~5,000 BCE</div>
-              <div className={styles["mobile-node-title"]}>Civilization</div>
-              <p className={styles["mobile-node-text"]}>
-                Writing and cities created memory systems that outlasted
-                any individual life.
-              </p>
-            </div>
-            <div className={styles["mobile-node"]}>
-              <div className={styles["mobile-node-year"]}>1760 CE</div>
-              <div className={styles["mobile-node-title"]}>Industrial Age</div>
-              <p className={styles["mobile-node-text"]}>
-                Machines took over physical work. Print made ideas cheap
-                to copy and fast to spread.
-              </p>
-            </div>
-            <div className={styles["mobile-node"]}>
-              <div className={styles["mobile-node-year"]}>1990 CE</div>
-              <div className={styles["mobile-node-title"]}>Digital Era</div>
-              <p className={styles["mobile-node-text"]}>
-                Global networks gave almost anyone access to almost all
-                recorded human knowledge, in real time.
-              </p>
-            </div>
-            <div className={styles["mobile-node"]}>
-              <div className={styles["mobile-node-year"]}>Present</div>
-              <div className={styles["mobile-node-title"]}>Artificial Intelligence</div>
-              <p className={styles["mobile-node-text"]}>
-                Intelligence now operates outside biology. Whether this
-                continues the same pattern — or breaks from it — is still
-                an open question.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.container}>
-          <div className={`${styles["obs-block"]} ${styles.reveal} ${styles["reveal-delay-2"]}`}>
-            <span className={styles["obs-label"]}>Observation</span>
-            <p className={styles["obs-text"]}>
-              What I find striking is that intelligence has never been fixed.
-              Each step in this sequence extends the previous one — it doesn't
-              replace it. The brain didn't stop being relevant when writing
-              appeared. Tools extend what minds can do.
-            </p>
-            <p className={styles["cross-connect"]}>
-              AI fits that same pattern. It is one more layer built on top of
-              everything that came before.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ SECTION 03 — REALITY & PERCEPTION ══════════════════ */}
-      <section id="reality" className={styles.reality}>
-        <span className={styles["section-index"]}>03</span>
-        <div className={styles.container}>
-          <div className={styles["reality-grid"]}>
-
-            <div className={`${styles["reality-left"]} ${styles.reveal}`}>
-              <span className={styles["section-label"]}>Section 03</span>
-              <blockquote className={styles["reality-quote"]}>
-                Perception is not a window.<br />It is a model.
-              </blockquote>
-              <p className={styles["reality-quote-attr"]}>
-                On how the brain constructs experience
-              </p>
-              <div className={styles["framework-line"]} style={{ marginTop: "28px" }}>
-                <span className={styles["framework-term"]}>Input</span>
-                <span className={styles["framework-sep"]}>→</span>
-                <span className={styles["framework-term"]}>Filtering</span>
-                <span className={styles["framework-sep"]}>→</span>
-                <span className={styles["framework-term"]}>Prediction</span>
-                <span className={styles["framework-sep"]}>→</span>
-                <span className={styles["framework-term"]}>Memory</span>
-                <span className={styles["framework-sep"]}>→</span>
-                <span className={styles["framework-term"]}>Percept</span>
-              </div>
-
-              <PredictiveStack />
-            </div>
-
-            <div className={`${styles["reality-right"]} ${styles.reveal} ${styles["reveal-delay-2"]}`}>
-              <span className={styles["cards-micro-label"]}>Cognitive Architecture</span>
-              <div className={styles["cards-grid"]}>
-
-                <div className={styles["expand-card"]}>
-                  <div className={styles["card-header"]}>
-                    <h3 className={styles["card-title"]}>Perception</h3>
-                    <div className={styles["card-icon"]} />
-                  </div>
-                  <div className={styles["card-body"]}>
-                    <div className={styles["card-body-inner"]}>
-                      The brain takes in around 11 million bits of sensory
-                      information per second. It consciously processes about 40.
-                      Rather than recording the world, it predicts it — and only
-                      updates when something doesn't match what it expected.
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles["expand-card"]}>
-                  <div className={styles["card-header"]}>
-                    <h3 className={styles["card-title"]}>Memory</h3>
-                    <div className={styles["card-icon"]} />
-                  </div>
-                  <div className={styles["card-body"]}>
-                    <div className={styles["card-body-inner"]}>
-                      Memory is not a recording. Each time you recall something,
-                      you rebuild it — shaped by how you feel now, what has
-                      happened since, and the context you're in. What you
-                      remember is a present-day reconstruction of a past event.
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles["expand-card"]}>
-                  <div className={styles["card-header"]}>
-                    <h3 className={styles["card-title"]}>Emotion</h3>
-                    <div className={styles["card-icon"]} />
-                  </div>
-                  <div className={styles["card-body"]}>
-                    <div className={styles["card-body-inner"]}>
-                      Emotions are not reactions that happen to you. The brain
-                      constructs them from body signals, past experience, and
-                      available concepts. The same physical state — elevated
-                      heart rate, heightened alertness — becomes fear, excitement,
-                      or focus depending on context.
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles["expand-card"]}>
-                  <div className={styles["card-header"]}>
-                    <h3 className={styles["card-title"]}>Culture</h3>
-                    <div className={styles["card-icon"]} />
-                  </div>
-                  <div className={styles["card-body"]}>
-                    <div className={styles["card-body-inner"]}>
-                      Culture is not just background. It shapes which things
-                      the brain notices, how it categorizes them, and what it
-                      treats as significant. Language, stories, and norms are
-                      part of how perception itself is built — not separate
-                      from it.
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-          <div className={`${styles["obs-block"]} ${styles.reveal} ${styles["reveal-delay-3"]}`}>
-            <span className={styles["obs-label"]}>Observation</span>
-            <p className={styles["obs-text"]}>
-              No two brains carry the same prior experience. That means no two
-              people are ever looking at exactly the same thing — even when they
-              are in the same room, facing the same scene.
-            </p>
-            <p className={styles["cross-connect"]}>
-              What shapes what we see also shapes what we feel and remember.
-              Culture, mood, and past experience are not separate from the mind
-              — they are part of how it works.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ SECTION 04 — RELIGION & MEANING ══════════════════ */}
-      <section id="religion" className={styles.religion}>
-        <span className={styles["section-index"]}>04</span>
-        <div className={styles.container}>
-          <div className={`${styles["religion-header"]} ${styles.reveal}`}>
-            <span className={styles["section-label"]}>Section 04</span>
-            <h2 className={styles["section-title"]}>Religion &amp; Meaning</h2>
-            <p className={styles["section-subtitle"]}>How humans make sense of things</p>
-            <span className={styles["gold-line"]} />
-            <div className={`${styles["framework-line"]} ${styles["framework-line-center"]}`}>
-              <span className={styles["framework-term"]}>Myth</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>Structure</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>Morality</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>Identity</span>
-              <span className={styles["framework-sep"]}>→</span>
-              <span className={styles["framework-term"]}>Transcendence</span>
-            </div>
-          </div>
-
-          <div className={styles["religion-grid"]}>
-            <div className={`${styles["religion-col"]} ${styles.reveal}`}>
-              <div className={styles["religion-col-number"]}>01</div>
-              <h3 className={styles["religion-col-title"]}>Origins</h3>
-              <div className={styles["religion-col-divider"]} />
-              <p className={styles["religion-col-text"]}>
-                Every documented culture has had religion. That kind of
-                consistency points to something in how minds naturally work —
-                a tendency to find patterns, assign causes, form groups, and
-                manage the awareness that we die. Religion likely emerged
-                because it was useful, not simply because it was true.
-              </p>
-            </div>
-            <div className={`${styles["religion-col"]} ${styles.reveal} ${styles["reveal-delay-2"]}`}>
-              <div className={styles["religion-col-number"]}>02</div>
-              <h3 className={styles["religion-col-title"]}>Structure</h3>
-              <div className={styles["religion-col-divider"]} />
-              <p className={styles["religion-col-text"]}>
-                Traditions that developed with no contact between them often
-                arrived at the same shape: a story of creation, rules for
-                living, markers of belonging, and a way to face death. That
-                convergence is better explained by shared human psychology
-                than by shared history.
-              </p>
-            </div>
-            <div className={`${styles["religion-col"]} ${styles.reveal} ${styles["reveal-delay-4"]}`}>
-              <div className={styles["religion-col-number"]}>03</div>
-              <h3 className={styles["religion-col-title"]}>Modern Evolution</h3>
-              <div className={styles["religion-col-divider"]} />
-              <p className={styles["religion-col-text"]}>
-                As science has answered many questions religion once addressed,
-                the underlying needs have not gone away. Community, shared
-                identity, meaning, and comfort with mortality now appear in
-                political movements, wellness culture, and tech-centered
-                worldviews — doing the same work, in different clothes.
-              </p>
-            </div>
-          </div>
-
-          <div className={`${styles["obs-block"]} ${styles.reveal} ${styles["reveal-delay-3"]}`}>
-            <span className={styles["obs-label"]}>Observation</span>
-            <p className={styles["obs-text"]}>
-              Religion persists not because its explanations are accurate, but
-              because it solves real problems — how to live together, build
-              trust, create meaning, and face mortality. Those problems don't
-              disappear with secularism.
-            </p>
-            <p className={styles["cross-connect"]}>
-              Secular ideologies use the same cognitive tools to serve the same
-              functions. The beliefs change. The architecture underneath them
-              does not.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ SECTION 05 — CONSCIOUSNESS ══════════════════ */}
-      <section id="consciousness" className={styles.consciousness}>
-        <span className={styles["section-index"]}>05</span>
-        <div className={styles["consciousness-inner"]}>
-          <div className={styles["consciousness-label"]} id="c-label">
-            Section 05 — Consciousness
-          </div>
-          <div className={styles["consciousness-lines"]} id="c-lines">
-            <div className={styles["c-line"]}>
-              Matter <span>self-organized.</span>
-            </div>
-            <div className={styles["c-line"]}>
-              Systems began to <span>model their environment.</span>
-            </div>
-            <div className={styles["c-line"]}>
-              Models became <span>self-referential.</span>
-            </div>
-            <div className={styles["c-line"]}>
-              The system <span>became aware of itself.</span>
-            </div>
-          </div>
-          <div className={styles["consciousness-footnote"]} id="c-footnote">
-            Why any of this produces inner experience — nobody knows.
-          </div>
-
-          <ConsciousnessLoop />
-
-          <div
-            className={`${styles["framework-line"]} ${styles["framework-line-center"]}`}
-            style={{ marginTop: "40px", justifyContent: "center" }}
-          >
-            <span className={styles["framework-term"]}>Matter</span>
-            <span className={styles["framework-sep"]}>→</span>
-            <span className={styles["framework-term"]}>Information</span>
-            <span className={styles["framework-sep"]}>→</span>
-            <span className={styles["framework-term"]}>Awareness</span>
-            <span className={styles["framework-sep"]}>→</span>
-            <span className={styles["framework-term"]}>Self-Reflection</span>
-          </div>
-
-          <div
-            className={`${styles["obs-block"]} ${styles["obs-block-center"]} ${styles.reveal} ${styles["reveal-delay-3"]}`}
-            style={{ marginTop: "48px" }}
-          >
-            <span className={styles["obs-label"]}>Observation</span>
-            <p className={styles["obs-text"]}>
-              We can see which parts of the brain are active during conscious
-              experience. What we cannot explain is why physical processes
-              produce something that feels like anything at all. That gap is
-              not small. It may require rethinking the framework, not just
-              filling in details.
-            </p>
-            <p className={styles["cross-connect"]} style={{ textAlign: "center", marginTop: "16px" }}>
-              The mind trying to understand consciousness is the same system
-              it is trying to understand.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ SECTION 06 — SYSTEM VIEW ══════════════════ */}
-      <section id="sysview" className={styles.sysview}>
-        <span className={styles["section-index"]}>06</span>
-        <div className={styles.container}>
-          <div className={`${styles["sysview-header"]} ${styles.reveal}`}>
-            <span className={styles["section-label"]}>Section 06</span>
-            <h2 className={styles["section-title"]}>System View</h2>
-            <p className={styles["section-subtitle"]}>How each layer builds on the last</p>
-            <span className={styles["gold-line"]} />
-          </div>
-
-          <div className={styles["sysview-inner"]}>
-            <div className={`${styles["sysview-chain"]} ${styles.reveal} ${styles["reveal-delay-1"]}`}>
-              <div className={styles["sysview-row"]}>
-                <div>
-                  <div className={styles["sysview-term"]}>Matter</div>
-                  <div className={styles["sysview-sub"]}>Particles · Forces · Energy gradients</div>
-                </div>
-              </div>
-              <div className={`${styles["sysview-row"]} ${styles["sysview-row-indent"]}`}>
-                <span className={styles["sysview-arrow"]}>→</span>
-                <div>
-                  <div className={styles["sysview-term"]}>Self-Organizing Systems</div>
-                  <div className={styles["sysview-sub"]}>Chemistry · Replication · Sustained order through energy</div>
-                </div>
-              </div>
-              <div className={`${styles["sysview-row"]} ${styles["sysview-row-indent"]}`}>
-                <span className={styles["sysview-arrow"]}>→</span>
-                <div>
-                  <div className={styles["sysview-term"]}>Biological Complexity</div>
-                  <div className={styles["sysview-sub"]}>Cells · Evolution · Adaptive brains</div>
-                </div>
-              </div>
-              <div className={`${styles["sysview-row"]} ${styles["sysview-row-indent"]}`}>
-                <span className={styles["sysview-arrow"]}>→</span>
-                <div>
-                  <div className={styles["sysview-term"]}>Neural Modeling</div>
-                  <div className={styles["sysview-sub"]}>Prediction · Perception · Memory · Language</div>
-                </div>
-              </div>
-              <div className={`${styles["sysview-row"]} ${styles["sysview-row-indent"]}`}>
-                <span className={styles["sysview-arrow"]}>→</span>
-                <div>
-                  <div className={styles["sysview-term"]}>Reflective Awareness</div>
-                  <div className={styles["sysview-sub"]}>Self-models · Consciousness · Reason · Culture</div>
-                </div>
-              </div>
-              <div className={`${styles["sysview-row"]} ${styles["sysview-row-indent"]}`}>
-                <span className={styles["sysview-arrow"]}>→</span>
-                <div>
-                  <div className={styles["sysview-term"]}>Externalized Cognition</div>
-                  <div className={styles["sysview-sub"]}>Writing · Institutions · Networks · AI</div>
-                </div>
-              </div>
-            </div>
-
-            <div className={`${styles["sysview-right"]} ${styles.reveal} ${styles["reveal-delay-2"]}`}>
-              <p className={styles["sysview-conclusion"]}>
-                A system that has begun<br />modeling itself.
-              </p>
-              <p className={styles["sysview-detail"]}>
-                Each layer here is built on the one before it — not a
-                replacement, but an extension. Biology runs on chemistry.
-                Thought runs on biology. Every level operates within the
-                limits set by the level beneath it.
-              </p>
-              <p className={styles["sysview-detail"]}>
-                What strikes me about the present moment is that the system
-                has started building external versions of itself — tools that
-                model, reason, and extend what the mind can do. The observer
-                and the thing being observed are part of the same process.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════ SECTION 07 — OPEN QUESTIONS ══════════════════ */}
-      <section id="questions" className={styles.questions}>
-        <span className={styles["section-index"]}>07</span>
-        <div className={styles.container}>
-          <div className={styles["questions-inner"]}>
-            <div className={styles.reveal}>
-              <span className={styles["section-label"]}>Section 07</span>
-              <h2 className={styles["section-title"]}>Open Questions</h2>
-              <p className={styles["section-subtitle"]}>Things I keep coming back to</p>
+        <div className={styles["cin-layout"]}>
+          <div className={styles["cin-text-col"]}>
+            <CuriosityLine text="Why does life appear from matter?" />
+            <div className={styles["cin-header"]}>
+              <span className={styles["section-label"]}>Section 01</span>
+              <h2 className={styles["section-title"]}>What Is Life?</h2>
+              <p className={styles["section-subtitle"]}>From physics to biology</p>
               <span className={styles["gold-line"]} />
-              <div
-                className={`${styles["framework-line"]} ${styles["framework-line-center"]}`}
-                style={{ marginBottom: "48px" }}
-              >
-                <span className={styles["framework-term"]}>Unresolved</span>
-                <span className={styles["framework-sep"]}>·</span>
-                <span className={styles["framework-term"]}>Open</span>
-                <span className={styles["framework-sep"]}>·</span>
-                <span className={styles["framework-term"]}>Worth asking</span>
+            </div>
+            <div className={`${styles["word-block"]} ${styles["cin-body"]}`}>
+              <p><WordSplit text="Life is matter that refuses to decay — not by magic, but by constantly consuming energy to hold itself together. " /><Phrase text="Erwin Schrödinger called it negative entropy." section="life" /><WordSplit text=" The atoms in every living thing were forged inside stars. When I think about that, life stops feeling like a separate category. It is physics, just further along." /></p>
+              <p><WordSplit text="At some point, molecules started copying themselves. " /><Phrase text="That was the crossing point — from chemistry to biology." section="life" /><WordSplit text=" No new laws were needed. Only the right conditions and enough time." /></p>
+              <p><WordSplit text="Natural selection has no goal. It keeps what works and discards what doesn't — generation after generation. Over billions of years, this produced immune systems, eyes, and eventually brains complex enough to ask what they are." /></p>
+            </div>
+            <div className={styles["cin-stats"]}>
+              <div className={styles["cin-stat"]}>
+                <span className={styles["stat-number"]} data-value="3800">3.8B</span>
+                <span className={styles["stat-label"]}>years of evolution</span>
+              </div>
+              <div className={styles["cin-stat"]}>
+                <span className={styles["stat-number"]} data-value="8700000">~8.7M</span>
+                <span className={styles["stat-label"]}>estimated species</span>
+              </div>
+              <div className={styles["cin-stat"]}>
+                <span className={styles["stat-number"]} data-value="37">37T</span>
+                <span className={styles["stat-label"]}>cells in your body</span>
               </div>
             </div>
+          </div>
+          <LifeFlowDiagram />
+        </div>
+      </section>
 
-            <ul className={styles["questions-list"]}>
-              <li className={`${styles["q-item"]} ${styles.reveal} ${styles["reveal-delay-1"]}`}>
-                <span className={styles["q-text"]}>Why is there something rather than nothing?</span>
-              </li>
-              <li className={`${styles["q-item"]} ${styles.reveal} ${styles["reveal-delay-2"]}`}>
-                <span className={styles["q-text"]}>Was the Big Bang a beginning — or a transition from something we can't yet see?</span>
-              </li>
-              <li className={`${styles["q-item"]} ${styles.reveal} ${styles["reveal-delay-3"]}`}>
-                <span className={styles["q-text"]}>Is the universe self-contained, or does something outside it exist?</span>
-              </li>
-              <li className={`${styles["q-item"]} ${styles.reveal} ${styles["reveal-delay-4"]}`}>
-                <span className={styles["q-text"]}>Are there deeper layers of physical structure we haven't found yet?</span>
-              </li>
-              <li className={`${styles["q-item"]} ${styles.reveal} ${styles["reveal-delay-1"]}`}>
-                <span className={styles["q-text"]}>Are we alone in the universe?</span>
-              </li>
-              <li className={`${styles["q-item"]} ${styles.reveal} ${styles["reveal-delay-2"]}`}>
-                <span className={styles["q-text"]}>Is consciousness a basic feature of matter?</span>
-              </li>
-              <li className={`${styles["q-item"]} ${styles.reveal} ${styles["reveal-delay-3"]}`}>
-                <span className={styles["q-text"]}>Is physical reality a kind of computation?</span>
-              </li>
-              <li className={`${styles["q-item"]} ${styles.reveal} ${styles["reveal-delay-4"]}`}>
-                <span className={styles["q-text"]}>Does experience end when the brain stops?</span>
-              </li>
-            </ul>
-
-            <p className={`${styles["closing-line"]} ${styles.reveal} ${styles["reveal-delay-5"]}`}>
-              Still observing.
-            </p>
+      {/* ══════════════════════════════════════════════
+          SECTION 02 — Evolution of Intelligence
+      ══════════════════════════════════════════════ */}
+      <section id="evolution" className={styles["cin-section"]}>
+        <span className={styles["section-index"]}>02</span>
+        <div className={styles["cin-layout"]}>
+          <EvoBranchDiagram />
+          <div className={styles["cin-text-col"]}>
+            <CuriosityLine text="How did instinct become intelligence — and what comes next?" />
+            <div className={styles["cin-header"]}>
+              <span className={styles["section-label"]}>Section 02</span>
+              <h2 className={styles["section-title"]}>Evolution of Intelligence</h2>
+              <p className={styles["section-subtitle"]}>From instinct to artificial cognition</p>
+              <span className={styles["gold-line"]} />
+            </div>
+            <div className={`${styles["word-block"]} ${styles["cin-body"]}`}>
+              <p><WordSplit text="Intelligence has never been fixed. Each step extends the previous one — it doesn't replace it. The brain didn't stop mattering when writing appeared. Language didn't become irrelevant when machines arrived. What I find striking is the acceleration: biology took billions of years, language spread over tens of thousands, digital networks reshaped everything in decades." /></p>
+              <p><WordSplit text="Humans built complex civilizations, systems of knowledge, and global networks. Yet at the same time, " /><Phrase text="access to information has not automatically created understanding." section="evolution" /><WordSplit text=" The internet made most of recorded human knowledge available to nearly everyone. Confusion and disagreement still exist — because knowing and understanding are not the same thing." /></p>
+              <p><WordSplit text="AI fits the same pattern — one more layer built on top of everything before it. But it is the first layer not produced by evolution. It is designed. That distinction may turn out to matter enormously, or not at all. We don't yet know." /></p>
+              <p><WordSplit text="If there is a layer 7, I suspect it won't be a new technology. " /><Phrase text="It will be a new relationship between the system and its own models —" section="evolution" /><WordSplit text=" a kind of collective metacognition we don't have a name for yet." /></p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ══════════════════ PAGE EPIGRAM ══════════════════ */}
-      <div className={`${styles["page-epigram"]} ${styles.reveal}`}>
+      {/* ══════════════════════════════════════════════
+          SECTION 03 — Reality & Perception
+      ══════════════════════════════════════════════ */}
+      <section id="reality" className={styles["cin-section"]}>
+        <span className={styles["section-index"]}>03</span>
+        <div className={styles["cin-layout"]}>
+          <div className={styles["cin-text-col"]}>
+            <CuriosityLine text="Are we seeing the world, or a model of it?" />
+            <div className={styles["cin-header"]}>
+              <span className={styles["section-label"]}>Section 03</span>
+              <h2 className={styles["section-title"]}>Reality &amp; Perception</h2>
+              <p className={styles["section-subtitle"]}>The brain predicts the world — it doesn't record it</p>
+              <span className={styles["gold-line"]} />
+            </div>
+            <div className={`${styles["word-block"]} ${styles["cin-body"]}`}>
+              <p><Phrase text="The brain receives around eleven million bits of sensory data every second. It consciously processes about forty." section="reality" /><WordSplit text=" It does not record reality — it generates a prediction and updates only when something breaks the expectation." /></p>
+              <p><WordSplit text="Consider the hollow mask illusion: a concave face painted on the back of a mask appears to bulge outward. The brain has seen millions of faces — it knows they are convex — and overrides the actual geometry of the light reaching your eyes. Your prior is stronger than the data." /></p>
+              <p><WordSplit text="No two brains carry the same prior experience. That means no two people are ever looking at exactly the same thing — even in the same room, facing the same scene. " /><Phrase text="Memory, emotion, and culture are not separate from perception. They are part of how it works." section="reality" /></p>
+            </div>
+            <blockquote className={styles["cin-quote"]}>
+              <WordSplit text="Perception is not a window. It is a model." />
+            </blockquote>
+          </div>
+          <PredictiveStack />
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════
+          SECTION 04 — Religion & Meaning
+      ══════════════════════════════════════════════ */}
+      <section id="religion" className={styles["cin-section"]}>
+        <span className={styles["section-index"]}>04</span>
+        <div className={styles["cin-layout"]}>
+          <BeliefMap />
+          <div className={styles["cin-text-col"]}>
+            <CuriosityLine text="Why does every culture ask the same questions?" />
+            <div className={styles["cin-header"]}>
+              <span className={styles["section-label"]}>Section 04</span>
+              <h2 className={styles["section-title"]}>Religion &amp; Meaning</h2>
+              <p className={styles["section-subtitle"]}>How humans make sense of things</p>
+              <span className={styles["gold-line"]} />
+            </div>
+            <div className={`${styles["word-block"]} ${styles["cin-body"]}`}>
+              <p><WordSplit text="Every documented culture has had religion. Traditions with no historical contact often arrived at the same shape: a story of creation, rules for living, markers of belonging, and a way to face death. That convergence is better explained by shared human psychology than by shared history." /></p>
+              <p><WordSplit text="My own view is that the explanations religion offers are mostly wrong, but " /><Phrase text="the needs it addresses are real and permanent." section="religion" /><WordSplit text=" The need for meaning doesn't disappear when you stop believing in a particular story. It just goes looking for another container." /></p>
+              <p><WordSplit text="Secular ideologies use the same cognitive architecture — in-group identity, moral codes, sacred texts, origin stories. " /><Phrase text="The content changes. The structure underneath does not." section="religion" /></p>
+            </div>
+
+            {/* Questions About God — calm, philosophical */}
+            <div className={styles["religion-god-block"]}>
+              <span className={styles["god-block-label"]}>A calm question</span>
+              <div className={`${styles["word-block"]}`}>
+                <p><WordSplit text="If a creator exists, certain things seem worth asking. Should it treat all humans equally — or favor specific groups, languages, and centuries? Would it need attention, worship, or validation from the things it created? Would it remain neutral, or intervene selectively?" /></p>
+                <p><WordSplit text="These are not attacks on the idea of a creator. They are honest questions. If the answer is that we cannot know, that itself is a meaningful position — and one I have more respect for than certainty in either direction." /></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════
+          SECTION 05 — Consciousness
+      ══════════════════════════════════════════════ */}
+      <section id="consciousness" className={styles["cin-section"]}>
+        <span className={styles["section-index"]}>05</span>
+        <div className={styles["cin-layout-top"]}>
+          <div className={styles["cin-text-col"]}>
+            <CuriosityLine text="Why does thinking feel like something?" />
+            <div className={styles["cin-header"]}>
+              <span className={styles["section-label"]}>Section 05</span>
+              <h2 className={styles["section-title"]}>Consciousness</h2>
+              <p className={styles["section-subtitle"]}>The hardest problem in science</p>
+              <span className={styles["gold-line"]} />
+            </div>
+
+            <div className={styles["c-lines-compact"]}>
+              {[
+                <>Matter <span className={styles["c-line-em"]}>self-organized.</span></>,
+                <>Systems began to <span className={styles["c-line-em"]}>model their environment.</span></>,
+                <>Models became <span className={styles["c-line-em"]}>self-referential.</span></>,
+                <>The system <span className={styles["c-line-em"]}>became aware of itself.</span></>,
+              ].map((line, i) => (
+                <div key={i} className={styles["c-line"]}>{line}</div>
+              ))}
+              <p className={styles["consciousness-footnote"]}>
+                Why any of this produces inner experience — nobody knows.
+              </p>
+            </div>
+
+            <div className={`${styles["word-block"]} ${styles["cin-body"]}`}>
+              <p><WordSplit text="We can describe consciousness from the outside — measure brain activity, map neural correlates, identify which regions activate during experience. " /><Phrase text="What we cannot explain is why any of this produces something that feels like anything at all." section="consciousness" /></p>
+              <p><WordSplit text="Consider Mary — a scientist who knows every physical fact about colour, every wavelength, every neural firing pattern — but has lived her entire life in a black-and-white room. When she steps outside and sees red for the first time, does she learn something new?" /></p>
+              <p><WordSplit text="If yes — if there is something it is like to see red that no amount of physical description captures — then consciousness is not fully explained by the brain's mechanics. That gap is the hard problem. It is not small." /></p>
+              <p><WordSplit text="There are three positions worth taking seriously. The first: consciousness is an illusion — the feeling of experience is itself a kind of model the brain builds. The second: it is a feature of sufficiently complex information processing — present wherever computation reaches a threshold. The third: it is fundamental to reality, as basic as mass or charge, not produced by matter but woven into it." /></p>
+              <p><Phrase text="The mind trying to understand consciousness is the same system it is trying to understand." section="consciousness" /><WordSplit text=" That recursion may be the deepest obstacle — or the most important clue." /></p>
+            </div>
+          </div>
+          <ConsciousnessLoop />
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════
+          SECTION 06 — System View
+      ══════════════════════════════════════════════ */}
+      <section id="sysview" className={styles["cin-section"]}>
+        <span className={styles["section-index"]}>06</span>
+        <div className={styles["cin-layout"]}>
+          <div className={styles["cin-text-col"]}>
+            <CuriosityLine text="What does it look like when you zoom all the way out?" />
+            <div className={styles["cin-header"]}>
+              <span className={styles["section-label"]}>Section 06</span>
+              <h2 className={styles["section-title"]}>System View</h2>
+              <p className={styles["section-subtitle"]}>How each layer builds on the last</p>
+              <span className={styles["gold-line"]} />
+            </div>
+            <div className={`${styles["word-block"]} ${styles["cin-body"]}`}>
+              <p><WordSplit text="Each layer is built on the one before — not a replacement, but an extension. " /><Phrase text="Biology runs on chemistry. Thought runs on biology." section="sysview" /><WordSplit text=" Every level operates within the limits set by the level beneath it." /></p>
+              <p><WordSplit text="What is striking is that the system has started building external versions of itself — tools that model, reason, and extend what the mind can do. The observer and the thing being observed are part of the same process." /></p>
+              <p><WordSplit text="If layer 7 exists, it may be the moment the system becomes coherent enough to steer itself — not blindly, as evolution does, but " /><Phrase text="with something closer to intention." section="sysview" /><WordSplit text=" Whether that is possible, and who does the steering, are the most consequential open questions of this century." /></p>
+            </div>
+          </div>
+
+          <div className={styles["diagram-float"]}>
+            <div className={styles["sysview-chain"]}>
+              {[
+                { term:"Matter",                  sub:"Particles · Forces · Energy",         indent:false },
+                { term:"Self-Organizing Systems", sub:"Chemistry · Replication",             indent:true  },
+                { term:"Biological Complexity",   sub:"Cells · Evolution · Brains",          indent:true  },
+                { term:"Neural Modeling",         sub:"Prediction · Memory · Language",      indent:true  },
+                { term:"Reflective Awareness",    sub:"Consciousness · Reason · Culture",    indent:true  },
+                { term:"Externalized Cognition",  sub:"Writing · Networks · AI",             indent:true  },
+                { term:"Layer 7 — ?",             sub:"Unknown. In progress.",               indent:true, dim:true },
+              ].map((row,i)=>(
+                <div key={i} className={`${styles["sysview-row"]}${row.indent?` ${styles["sysview-row-indent"]}`:""}`}
+                  style={row.dim?{opacity:0.38}:{}}>
+                  {row.indent && <span className={styles["sysview-arrow"]}>→</span>}
+                  <div>
+                    <div className={styles["sysview-term"]}>{row.term}</div>
+                    <div className={styles["sysview-sub"]}>{row.sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════
+          SECTION 07 — Open Questions
+      ══════════════════════════════════════════════ */}
+      <section id="questions" className={styles["cin-section"]}>
+        <span className={styles["section-index"]}>07</span>
+        <div className={styles["cin-questions-inner"]}>
+          <CuriosityLine text="What stays open no matter how long you look?" />
+          <div className={styles["cin-header"]} style={{textAlign:"center",alignItems:"center"}}>
+            <span className={styles["section-label"]}>Section 07</span>
+            <h2 className={styles["section-title"]}>Open Questions</h2>
+            <p className={styles["section-subtitle"]}>Things I keep coming back to</p>
+            <span className={styles["gold-line"]} style={{margin:"0 auto 32px"}} />
+          </div>
+
+          {/* Universe questions */}
+          <p className={styles["q-group-label"]}>Questions about the universe</p>
+          <ul className={styles["questions-list"]}>
+            {[
+              "Why is there something rather than nothing?",
+              "What existed before the Big Bang — or is 'before' the wrong word?",
+              "How did matter first appear in space?",
+              "Is the universe random, or does it follow a deeper structure we haven't found?",
+              "Why does the universe follow mathematical laws at all?",
+              "Are we alone?",
+            ].map((q,i) => (
+              <li key={i} className={styles["q-item"]}>
+                <span className={styles["q-number"]}>{String(i+1).padStart(2,"0")}</span>
+                <span className={styles["q-text"]}>{q}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* God questions */}
+          <p className={styles["q-group-label"]} style={{marginTop:"36px"}}>Questions about a creator</p>
+          <ul className={styles["questions-list"]}>
+            {[
+              "If a creator exists, why would it remain hidden?",
+              "Would a true creator favor specific groups, languages, or centuries?",
+              "Would it require worship, attention, or validation from what it made?",
+              "Is the universe self-contained — or does something outside it exist?",
+            ].map((q,i) => (
+              <li key={i} className={styles["q-item"]}>
+                <span className={styles["q-number"]}>{String(i+1).padStart(2,"0")}</span>
+                <span className={styles["q-text"]}>{q}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Consciousness questions */}
+          <p className={styles["q-group-label"]} style={{marginTop:"36px"}}>Questions about mind</p>
+          <ul className={styles["questions-list"]}>
+            {[
+              "Is consciousness a basic feature of matter — present wherever information is processed?",
+              "Is physical reality a kind of computation?",
+              "Does experience end when the brain stops?",
+            ].map((q,i) => (
+              <li key={i} className={styles["q-item"]}>
+                <span className={styles["q-number"]}>{String(i+1).padStart(2,"0")}</span>
+                <span className={styles["q-text"]}>{q}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className={`${styles["word-block"]} ${styles["cin-closing"]}`}>
+            <p><WordSplit text="The one that haunts me most is the last one. Everything else is a question about the universe outside — structure, origin, scale. But " /><Phrase text="whether experience ends is a question about what I am." section="questions" /><WordSplit text=" It is the most personal and the most unanswerable. Every tradition has tried to resolve it. None have." /></p>
+            <p className={styles["closing-line"]}><WordSplit text="Still observing." /></p>
+          </div>
+        </div>
+      </section>
+
+      {/* EPIGRAM + SIGNATURE */}
+      <div className={styles["page-epigram"]}>
         <div className={styles["page-epigram-rule"]} />
         <p className={styles["page-epigram-text"]}>
           All models are incomplete. The questions stay open.
         </p>
         <div className={styles["page-epigram-rule"]} />
+        <p className={styles["page-signature"]}>— Naveen</p>
+        <p className={styles["page-signature-sub"]}>Observing life, systems, and the universe.</p>
       </div>
 
     </div>
