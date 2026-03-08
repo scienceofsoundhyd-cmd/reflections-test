@@ -1535,7 +1535,7 @@
 
 /* ── 1 · Dark page base ────────────────────────────────────────── */
 :global(body) {
-  background: #080c18;
+  background: #03091e;
 }
 
 /* ── 2 · Override all CSS variables at root — fixes every var() ── */
@@ -2003,7 +2003,7 @@
 /* ── Cinematic section base ─────────────────────────────────────────── */
 .cin-section {
   position: relative;
-  min-height: 100vh;
+  min-height: 200vh;
   display: flex;
   align-items: center;
   padding: 100px 0 80px;
@@ -2393,7 +2393,7 @@
 /* ── Cinematic section base ─────────────────────────────────────────── */
 .cin-section {
   position: relative;
-  min-height: 100vh;
+  min-height: 200vh;
   display: flex;
   align-items: center;
   padding: 100px 0 80px;
@@ -2924,7 +2924,7 @@
 /* ── Cinematic section base ─────────────────────────────────────────── */
 .cin-section {
   position: relative;
-  min-height: 100vh;
+  min-height: 200vh;
   display: flex;
   align-items: center;
   padding: 100px 0 80px;
@@ -3627,4 +3627,127 @@
   margin-left: auto;
   flex-shrink: 0;
   opacity: 0.7;
+}
+
+
+/* ── Fixed viewport blur overlay — 30% top / 40% clear / 30% bottom ── */
+/* Sits above content, below nav. Only text is in its path.              */
+/* Background canvas is a sibling behind everything — stays sharp.       */
+.content-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   UNIFORM SPACING SYSTEM — single source of truth, overrides everything.
+   Section-to-section: even. Inside each section: constant.
+════════════════════════════════════════════════════════════════════ */
+
+/* ── Section outer padding — equal top & bottom on every section ── */
+.cin-section {
+  padding: 140px 0 140px !important;
+  align-items: flex-start !important;
+}
+
+/* Hero gets a little more room at top for portrait */
+.hero {
+  padding-top: 100px !important;
+  padding-bottom: 140px !important;
+}
+
+/* Questions section — centered, no two-col so tighter width */
+#questions {
+  padding: 140px 0 140px !important;
+}
+
+/* ── Two-column layout — constant column gap ── */
+.cin-layout,
+.cin-layout-top {
+  gap: 72px !important;
+  padding: 0 56px !important;
+  align-items: flex-start !important;
+}
+
+/* ── Text column — constant gap between every block inside ── */
+.cin-text-col {
+  gap: 24px !important;
+}
+
+/* ── Header block — label / title / subtitle / gold-line ── */
+.cin-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  margin-bottom: 0 !important;
+}
+
+/* Gold line: a bit of breathing room above and below */
+.gold-line {
+  margin-top: 8px !important;
+  margin-bottom: 0 !important;
+}
+
+/* ── Body text — consistent paragraph spacing ── */
+.word-block p {
+  margin-bottom: 16px !important;
+  line-height: 1.76 !important;
+}
+.word-block p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* ── Stats row — consistent spacing ── */
+.cin-stats {
+  gap: 40px !important;
+  margin-top: 0 !important;
+}
+
+/* ── Blockquote ── */
+.cin-quote {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* ── Religion god block ── */
+.religion-god-block {
+  margin-top: 0 !important;
+}
+
+/* ── Questions list ── */
+.questions-list {
+  gap: 12px !important;
+}
+.q-item {
+  padding: 14px 0 !important;
+}
+.q-group-label {
+  margin-top: 40px !important;
+  margin-bottom: 8px !important;
+}
+.q-group-label:first-of-type {
+  margin-top: 0 !important;
+}
+
+/* ── Closing line ── */
+.cin-closing {
+  margin-top: 0 !important;
+  padding-top: 24px !important;
+  border-top: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+/* ── Page epigram bottom ── */
+.page-epigram {
+  padding: 80px 0 100px !important;
+}
+
+/* ── Mobile: collapse two-column padding ── */
+@media (max-width: 900px) {
+  .cin-section {
+    padding: 80px 0 80px !important;
+  }
+  .cin-layout,
+  .cin-layout-top {
+    padding: 0 24px !important;
+    gap: 40px !important;
+  }
 }

@@ -668,6 +668,7 @@ function getTriPaths():Path2D[]{
 
 function drawMesh(ctx:CanvasRenderingContext2D,scA:Scene,scB:Scene,morphT:number,proj:Float32Array){
   const eased=morphT<0.5?4*morphT**3:1-(-2*morphT+2)**3/2;
+  // Dots and lines always fully visible — alpha never changes
   const aA=morphT>0.97?0:1-eased;
   const aB=morphT<0.03?0:eased;
   const[rA,gA,bA]=scA.rgb,[rB,gB,bB]=scB.rgb;
@@ -708,15 +709,13 @@ function drawMesh(ctx:CanvasRenderingContext2D,scA:Scene,scB:Scene,morphT:number
   if(aA>0.012) drawSegs(scA.segs,aA);
   if(aB>0.012) drawSegs(scB.segs,aB);
 
-  // Dots — fillRect: ~8x faster than arc(), no bezier computation
-  // Glow pass: every 3rd point, larger square, tinted color
+  // Dots — always full alpha, no fading
   ctx.fillStyle=`rgba(${R},${G},${B2},0.10)`;
   for(let i=0;i<TOTAL_N;i+=3){
     const sx=proj[i*3],sy=proj[i*3+1],d=proj[i*3+2];
     const sz=clamp(0.9+(d+1.2)*0.55,0.9,2.4);
     ctx.fillRect(sx-sz,sy-sz,sz*2,sz*2);
   }
-  // Core pass: every 2nd point, sharp bright pixel
   ctx.fillStyle='rgba(220,238,255,0.82)';
   for(let i=0;i<TOTAL_N;i+=2){
     const sx=proj[i*3],sy=proj[i*3+1],d=proj[i*3+2];
@@ -805,12 +804,21 @@ export default function GlobalBackground(){
       scrollSmooth+=(scrollRaw-scrollSmooth)*0.08;
       const sp=clamp(scrollSmooth,0,0.9999),NS=SCENES.length,raw=sp*(NS-1);
       const fi=raw|0,ti=fi+1<NS?fi+1:NS-1;
-      const tRaw=raw-fi;
-      // Transition only fires in the last 18% of each section's scroll range.
-      // First 82% of scrolling through a section = scene stays fully locked.
-      const TRANS=0.18;
-      const tAdj=tRaw<(1-TRANS)?0:clamp((tRaw-(1-TRANS))/TRANS,0,1);
-      const morphT=tAdj<0.5?2*tAdj*tAdj:(4-2*tAdj)*tAdj-1;
+      const tRaw=raw-fi; // 0..1 progress through current section
+
+      // ── Pure positional morph: no alpha, no fade, dots always fully visible ──
+      // 0→25%  of section: held at sceneA (morphT=0)
+      // 25→75% of section: dots move from sceneA → sceneB positions
+      // 75→100% of section: held at sceneB (morphT=1)
+      const ease=(t:number)=>t<0.5?2*t*t:(4-2*t)*t-1;
+      let morphT:number;
+      if(tRaw<0.25){
+        morphT=0;
+      } else if(tRaw<0.75){
+        morphT=ease((tRaw-0.25)/0.50);
+      } else {
+        morphT=1;
+      }
       const scA=SCENES[fi],scB=SCENES[ti];
       const tilt=lerp(scA.tilt,scB.tilt,morphT),rotY=rotAccum;
       const cY=Math.cos(rotY),sY=Math.sin(rotY),cT=Math.cos(tilt),sT=Math.sin(tilt);
