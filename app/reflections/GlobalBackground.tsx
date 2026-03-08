@@ -1,928 +1,864 @@
 "use client";
 import { useEffect, useRef } from "react";
 
-const SHAPE_N = 1200;
-const ORBIT_N = 150;
-const TOTAL_N = SHAPE_N + ORBIT_N;
-const BUCKETS  = 5;
+const SHAPE_N = 6000;  // 6000 shape + 240 orbit = 6240 total
+const ORBIT_N = 240;
+const TOTAL_N  = SHAPE_N + ORBIT_N;
+const BUCKETS  = 4;   // reduced for perf at 6000 pts
 
 interface V3  { x:number; y:number; z:number; }
 interface Tri { a:number; b:number; c:number; }
-interface Scene {
-  pts:  V3[];
-  tris: Tri[];
-  segs: [number,number][];
-  rgb:  [number,number,number];
-  tilt: number;
-}
+interface Scene { pts:V3[]; tris:Tri[]; segs:[number,number][]; rgb:[number,number,number]; tilt:number; }
 
-// ── utils ────────────────────────────────────────────────────────────────────
-const lerp  = (a:number,b:number,t:number) => a+(b-a)*t;
-const clamp = (v:number,lo:number,hi:number) => Math.max(lo,Math.min(hi,v));
+const lerp  = (a:number,b:number,t:number)=>a+(b-a)*t;
+const clamp = (v:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,v));
 function lcg(s0:number){ let s=s0|0; return ()=>{ s=(Math.imul(s,1664525)+1013904223)|0; return (s>>>0)/4294967296; }; }
 function rS(b:number,n:number):[number,number][]{ const s:[number,number][]=[];for(let i=0;i<n;i++)s.push([b+i,b+(i+1)%n]);return s; }
 function cS(f:number,t:number):[number,number][]{ const s:[number,number][]=[];for(let i=f;i<t;i++)s.push([i,i+1]);return s; }
 function triStrip(a:number,b:number,n:number):Tri[]{ const t:Tri[]=[];for(let i=0;i<n;i++){const j=(i+1)%n;t.push({a:a+i,b:b+i,c:a+j},{a:b+i,b:b+j,c:a+j});}return t; }
-function pad(pts:V3[],seed:number):V3[]{
-  const r=lcg(seed+9999); const out=[...pts];
-  while(out.length<SHAPE_N) out.push({x:(r()-0.5)*1.8,y:(r()-0.5)*1.2,z:(r()-0.5)*0.8});
-  return out.slice(0,SHAPE_N);
-}
-// Fibonacci sphere — evenly distributed points on sphere surface
-function fibSphere(n:number,radius:number,rng:()=>number):V3[]{
-  const pts:V3[]=[];
-  const golden=Math.PI*(3-Math.sqrt(5));
-  for(let i=0;i<n;i++){
-    const y=1-(i/(n-1))*2;
-    const r2=Math.sqrt(1-y*y);
-    const th=golden*i;
-    pts.push({x:radius*r2*Math.cos(th)+(rng()-0.5)*0.012,y:radius*y+(rng()-0.5)*0.012,z:radius*r2*Math.sin(th)+(rng()-0.5)*0.012});
-  }
+function fibSphere(n:number,rad:number,rng:()=>number):V3[]{
+  const pts:V3[]=[];const g=Math.PI*(3-Math.sqrt(5));
+  for(let i=0;i<n;i++){const y=1-(i/(n-1))*2,r2=Math.sqrt(1-y*y),th=g*i;pts.push({x:rad*r2*Math.cos(th)+(rng()-0.5)*0.008,y:rad*y+(rng()-0.5)*0.008,z:rad*r2*Math.sin(th)+(rng()-0.5)*0.008});}
   return pts;
 }
+function pad(pts:V3[],seed:number):V3[]{
+  const r=lcg(seed+9999);const out=[...pts];
+  while(out.length<SHAPE_N)out.push({x:(r()-0.5)*1.6,y:(r()-0.5)*1.2,z:(r()-0.5)*0.7});
+  return out.slice(0,SHAPE_N);
+}
+// Build tube along centers array, appending pts/tris/segs in place
+function tube(centers:{x:number;y:number;z:number}[],radius:number,sides:number,rng:()=>number,pts:V3[],tris:Tri[],segs:[number,number][]){
+  const rings:number[]=[];
+  centers.forEach(({x,y,z},ci)=>{
+    const base=pts.length;rings.push(base);
+    // Compute a stable ring perpendicular to the spine direction
+    let tx=0,ty=1,tz=0;
+    if(ci<centers.length-1){const d=centers[ci+1];const dx=d.x-x,dy=d.y-y,dz=d.z-z;const l=Math.sqrt(dx*dx+dy*dy+dz*dz)||1;tx=dx/l;ty=dy/l;tz=dz/l;}
+    // Two perpendicular vectors to tangent
+    const ax=Math.abs(tx)<0.9?1:0,ay=Math.abs(tx)<0.9?0:1,az=0;
+    const ux=ay*tz-az*ty,uy=az*tx-ax*tz,uz=ax*ty-ay*tx;
+    const ul=Math.sqrt(ux*ux+uy*uy+uz*uz)||1;
+    const vx=ty*uz/ul-tz*uy/ul,vy=tz*ux/ul-tx*uz/ul,vz=tx*uy/ul-ty*ux/ul;
+    for(let s=0;s<sides;s++){
+      const a=(s/sides)*Math.PI*2,c=Math.cos(a),si2=Math.sin(a),r2=radius*(0.90+rng()*0.18);
+      pts.push({x:x+r2*(c*ux/ul+si2*vx),y:y+r2*(c*uy/ul+si2*vy),z:z+r2*(c*uz/ul+si2*vz)});
+    }
+    segs.push(...rS(base,sides));
+    if(ci>0)tris.push(...triStrip(rings[ci-1],rings[ci],sides));
+  });
+}
 
-// ════════════════════════════════════════════════════════════════════════════
-// SCENE 0 — GALAXY  (Hero) — 4 wide spiral arms + bulge + halo
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════ SCENE 0 — GALAXY ═══════════
 function buildGalaxy():Scene{
-  const r=lcg(7);
-  const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
-
-  // Dense central bulge: 180 pts ellipsoid
-  for(let i=0;i<180;i++){
-    const phi=Math.acos(1-2*r()),th=r()*Math.PI*2;
-    const rr=Math.pow(r(),0.35)*0.30;
-    pts.push({x:rr*Math.sin(phi)*Math.cos(th),y:rr*Math.sin(phi)*Math.sin(th)*0.42,z:rr*Math.cos(phi)});
+  const r=lcg(7);const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
+  // Dense ellipsoid core
+  for(let i=0;i<1500;i++){
+    const phi=Math.acos(1-2*r()),th=r()*Math.PI*2,rr=Math.pow(r(),0.22)*0.42;
+    pts.push({x:rr*Math.sin(phi)*Math.cos(th),y:rr*Math.sin(phi)*Math.sin(th)*0.30,z:rr*Math.cos(phi)});
   }
-  for(let i=0;i<178;i++) tris.push({a:i,b:i+1,c:(i+13)%180});
-  segs.push(...rS(0,32));
-
-  // 4 spiral arms: 200 pts each, wide spread to r=1.75
+  // 4 spiral arms
   for(let arm=0;arm<4;arm++){
+    const off=(arm/4)*Math.PI*2;
+    for(let i=0;i<660;i++){
+      const t=(i/659)*Math.PI*3.0,rr=0.34+t*0.330,sp=0.018+t*0.038;
+      pts.push({x:rr*Math.cos(t+off)+(r()-0.5)*sp,y:(r()-0.5)*0.090,z:rr*Math.sin(t+off)+(r()-0.5)*sp});
+    }
+  }
+  // Wide dust lane
+  for(let i=0;i<1260;i++){
+    const ang=r()*Math.PI*2,rr=0.28+r()*2.00;
+    pts.push({x:rr*Math.cos(ang)+(r()-0.5)*0.06,y:(r()-0.5)*0.060,z:rr*Math.sin(ang)+(r()-0.5)*0.06});
+  }
+  // Spherical halo
+  for(let i=0;i<600;i++){
+    const phi=Math.acos(1-2*r()),th=r()*Math.PI*2,rr=1.20+r()*1.30;
+    pts.push({x:rr*Math.sin(phi)*Math.cos(th),y:rr*Math.sin(phi)*Math.sin(th)*0.52,z:rr*Math.cos(phi)});
+  }
+  // 1500+2640+1260+600 = 6000
+  return{pts:pad(pts,7),tris:[],segs:[],rgb:[90,140,255],tilt:0.42};
+}
+
+// ═══════════ SCENE 1 — DNA DOUBLE HELIX (Life) ═══════════
+function buildDNA():Scene{
+  const r=lcg(17);const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
+  const TURNS=9,PPT=32,TH=TURNS*PPT,HEIGHT=1.80,HRADIUS=0.30;
+  // Strand A
+  const sA:number[]=[];
+  for(let i=0;i<TH;i++){
+    const t=i/TH,ang=t*TURNS*Math.PI*2,y=-HEIGHT/2+t*HEIGHT;
+    sA.push(pts.length);
+    pts.push({x:HRADIUS*Math.cos(ang)+(r()-0.5)*0.010,y:y+(r()-0.5)*0.006,z:HRADIUS*Math.sin(ang)+(r()-0.5)*0.010});
+  }
+  for(let i=0;i<TH-1;i++)segs.push([sA[i],sA[i+1]]);
+  // Strand B (offset π)
+  const sB:number[]=[];
+  for(let i=0;i<TH;i++){
+    const t=i/TH,ang=t*TURNS*Math.PI*2+Math.PI,y=-HEIGHT/2+t*HEIGHT;
+    sB.push(pts.length);
+    pts.push({x:HRADIUS*Math.cos(ang)+(r()-0.5)*0.010,y:y+(r()-0.5)*0.006,z:HRADIUS*Math.sin(ang)+(r()-0.5)*0.010});
+  }
+  for(let i=0;i<TH-1;i++)segs.push([sB[i],sB[i+1]]);
+  // Base pair rungs — connect strands every 4 pts with 3 intermediate pts
+  const RSTEP=4,RINT=3;
+  for(let i=0;i<TH;i+=RSTEP){
+    const pa=pts[sA[i]],pb=pts[sB[i]],rb=pts.length;
+    for(let k=1;k<=RINT;k++){const t=k/(RINT+1);pts.push({x:lerp(pa.x,pb.x,t)+(r()-0.5)*0.006,y:lerp(pa.y,pb.y,t),z:lerp(pa.z,pb.z,t)+(r()-0.5)*0.006});}
+    segs.push([sA[i],rb]);
+    for(let k=0;k<RINT-1;k++)segs.push([rb+k,rb+k+1]);
+    segs.push([rb+RINT-1,sB[i]]);
+    if(i+RSTEP<TH){tris.push({a:sA[i],b:sA[i+RSTEP],c:rb});tris.push({a:sB[i],b:sB[i+RSTEP],c:rb+RINT-1});}
+  }
+  // Organic scatter — floating nucleotide cloud
+  for(let i=0;i<800;i++){
+    const ang=r()*Math.PI*2,h=-HEIGHT/2+r()*HEIGHT,d=0.44+Math.pow(r(),0.7)*0.85;
+    pts.push({x:d*Math.cos(ang)+(r()-0.5)*0.06,y:h,z:d*Math.sin(ang)+(r()-0.5)*0.06});
+  }
+  return{pts:pad(pts,17),tris,segs,rgb:[50,210,130],tilt:0.52};
+}
+
+// ═══════════ SCENE 2 — TREE OF LIFE (Evolution of Intelligence) ═══════════
+function buildTree():Scene{
+  const r=lcg(42);const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
+  // Grow a branch: returns tip point index
+  const branch=(x:number,y:number,z:number,dx:number,dy:number,dz:number,len:number,steps:number,jit:number):number=>{
     const base=pts.length;
-    const offset=(arm/4)*Math.PI*2;
-    for(let i=0;i<200;i++){
-      const t=(i/199)*Math.PI*2.7;
-      const rr=0.30+t*0.280;
-      const spread=0.015+t*0.024;
-      pts.push({x:rr*Math.cos(t+offset)+(r()-0.5)*spread,y:(r()-0.5)*0.11,z:rr*Math.sin(t+offset)+(r()-0.5)*spread});
+    for(let i=0;i<=steps;i++){
+      const t=i/steps;
+      pts.push({x:x+dx*len*t+(r()-0.5)*jit,y:y+dy*len*t+(r()-0.5)*jit,z:z+dz*len*t+(r()-0.5)*jit});
     }
-    segs.push(...cS(base,base+199));
-    for(let i=0;i<197;i++) tris.push({a:base+i,b:base+i+1,c:base+i+(i%5===0?3:1)});
-    for(let k=0;k<7;k++) segs.push([base+k*28,k*25]);
-  }
-  // 180 + 4×200 = 980 pts
-
-  // Halo field stars: scattered at large radii — 220 pts
-  for(let i=0;i<220;i++){
-    const ang=r()*Math.PI*2;
-    const rr=0.90+r()*0.88;
-    pts.push({x:rr*Math.cos(ang)+(r()-0.5)*0.09,y:(r()-0.5)*0.20,z:rr*Math.sin(ang)+(r()-0.5)*0.09});
-  }
-  // Total: 1200 pts exactly
-
-  return{pts:pad(pts,7),tris,segs,rgb:[120,165,255],tilt:0.18};
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// SCENE 1 — HEARTBEAT ECG  (Life)
-// ════════════════════════════════════════════════════════════════════════════
-function ecgY(phase:number):number{
-  // phase: 0→1 per PQRST cycle
-  if(phase<0.08) return 0;
-  // P wave
-  if(phase<0.10) return (phase-0.08)/0.02*0.09;
-  if(phase<0.14) return 0.09;
-  if(phase<0.20) return (0.20-phase)/0.06*0.09;
-  if(phase<0.27) return 0;
-  // Q dip
-  if(phase<0.29) return -(phase-0.27)/0.02*0.11;
-  // R spike
-  if(phase<0.32) return -0.11+(phase-0.29)/0.03*1.06;
-  // S dip
-  if(phase<0.345) return 0.95-(phase-0.32)/0.025*1.14;
-  if(phase<0.38) return -0.19+(phase-0.345)/0.035*0.22;
-  // ST
-  if(phase<0.46) return 0.03;
-  // T wave
-  if(phase<0.52) return 0.03+(phase-0.46)/0.06*0.19;
-  if(phase<0.60) return 0.22;
-  if(phase<0.70) return 0.22-(phase-0.60)/0.10*0.22;
-  return 0;
-}
-
-function buildECG():Scene{
-  const r=lcg(13);
-  const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
-
-  // 3 ECG cycles, strand A: 180 pts from x=-1.15 to x=1.15
-  const SN=180, CYCLES=3;
-  const aBase=0;
-  for(let i=0;i<SN;i++){
-    const xn=i/(SN-1); // 0→1 over all cycles
-    const phase=(xn*CYCLES)%1.0;
-    const x=-1.15+xn*2.30;
-    const y=ecgY(phase)*0.78;
-    pts.push({x,y,z:(r()-0.5)*0.018});
-  }
-  segs.push(...cS(aBase,aBase+SN-1));
-
-  // Strand B: 180 pts offset in z for ribbon effect
-  const bBase=pts.length;
-  for(let i=0;i<SN;i++){
-    const p=pts[i];
-    pts.push({x:p.x+(r()-0.5)*0.008,y:p.y+(r()-0.5)*0.008,z:p.z+0.06});
-  }
-  segs.push(...cS(bBase,bBase+SN-1));
-  for(let i=0;i<SN-1;i++){
-    tris.push({a:aBase+i,b:bBase+i,c:aBase+i+1},{a:bBase+i,b:bBase+i+1,c:aBase+i+1});
-    if(i%6===0) segs.push([aBase+i,bBase+i]);
-  }
-  // 360 pts so far
-
-  // Cellular background: hex-ish scatter of 840 pts simulating biological cells
-  const cellBase=pts.length;
-  for(let i=0;i<840;i++){
-    const cx=(r()-0.5)*2.2, cy=(r()-0.5)*1.3, cz=(r()-0.5)*0.55;
-    pts.push({x:cx,y:cy,z:cz});
-  }
-  // Connect nearby cell pts to form membranes
-  const cp=pts.slice(cellBase);
-  for(let i=0;i<cp.length&&i<840;i++){
-    for(let j=i+1;j<cp.length&&j<i+30;j++){
-      const dx=cp[i].x-cp[j].x,dy=cp[i].y-cp[j].y;
-      if(dx*dx+dy*dy<0.022){
-        segs.push([cellBase+i,cellBase+j]);
-        if(j+1<cp.length) tris.push({a:cellBase+i,b:cellBase+j,c:cellBase+j+1});
+    for(let i=0;i<steps;i++)segs.push([base+i,base+i+1]);
+    return base+steps;
+  };
+  // Trunk — grows downward
+  const t0=branch(0,0.82,0,0,-1,0,1.70,28,0.006);
+  const tp0=pts[t0];
+  // Level 1: 2 main boughs
+  const L1=[{dx:-0.58,dy:-0.76,dz:0.10},{dx:0.58,dy:-0.76,dz:-0.10}];
+  L1.forEach(({dx,dy,dz})=>{
+    const n=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    const t1=branch(tp0.x,tp0.y,tp0.z,dx/n,dy/n,dz/n,0.88,18,0.014);
+    const tp1=pts[t1];
+    // Level 2: 2 branches each
+    [{dx2:-0.42,dz2:0.14},{dx2:0.42,dz2:-0.14}].forEach(({dx2,dz2})=>{
+      const dx3=dx/n+dx2,dy3=dy/n-0.06,dz3=dz/n+dz2;
+      const n3=Math.sqrt(dx3*dx3+dy3*dy3+dz3*dz3);
+      const t2=branch(tp1.x,tp1.y,tp1.z,dx3/n3,dy3/n3,dz3/n3,0.58,14,0.018);
+      const tp2=pts[t2];
+      // Level 3
+      for(let k=0;k<2;k++){
+        const off=k===0?0.36:-0.36;
+        const dx4=dx3/n3+off,dy4=dy3/n3-0.12,dz4=dz3/n3;
+        const n4=Math.sqrt(dx4*dx4+dy4*dy4+dz4*dz4);
+        const t3=branch(tp2.x,tp2.y,tp2.z,dx4/n4,dy4/n4,dz4/n4,0.34,9,0.022);
+        const tp3=pts[t3];
+        // Level 4 leaf sprigs
+        for(let m=0;m<4;m++){
+          const af=(m/4)*Math.PI*2,ss=0.26+r()*0.10;
+          const dx5=Math.cos(af)*0.38+dx4/n4*0.18,dy5=-0.28,dz5=Math.sin(af)*0.38;
+          const n5=Math.sqrt(dx5*dx5+dy5*dy5+dz5*dz5);
+          branch(tp3.x,tp3.y,tp3.z,dx5/n5,dy5/n5,dz5/n5,ss,5,0.026);
+        }
       }
-    }
-  }
-  // Total: 1200 pts
-
-  return{pts:pad(pts,13),tris,segs,rgb:[55,210,110],tilt:0.10};
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// SCENE 2 — BRAIN (Evolution) — cortex shell + sulci + dense neural interior
-// ════════════════════════════════════════════════════════════════════════════
-function buildBrain():Scene{
-  const r=lcg(42);
-  const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
-
-  // Lateral brain profile — 18 pts
-  const BP:[number,number][]=[
-    [-0.46,-0.64],[-0.66,-0.28],[-0.70, 0.08],[-0.60, 0.38],
-    [-0.30, 0.62],[-0.04, 0.70],[ 0.22, 0.64],[ 0.50, 0.40],
-    [ 0.64, 0.06],[ 0.62,-0.26],[ 0.44,-0.58],[ 0.16,-0.74],
-    [-0.10,-0.76],[-0.28,-0.70],[-0.36,-0.68],[-0.40,-0.66],
-    [-0.44,-0.66],[-0.46,-0.65],
-  ];
-  const BPN=BP.length;
-
-  // 9 depth layers — tapers at ±0.62
-  const layers=[
-    {z:-0.62,s:0.46,tw: 0.09},
-    {z:-0.44,s:0.66,tw: 0.06},
-    {z:-0.22,s:0.88,tw: 0.03},
-    {z:-0.08,s:0.96,tw: 0.01},
-    {z: 0.00,s:1.00,tw: 0.00},
-    {z: 0.08,s:0.96,tw:-0.01},
-    {z: 0.22,s:0.88,tw:-0.03},
-    {z: 0.44,s:0.66,tw:-0.06},
-    {z: 0.62,s:0.46,tw:-0.09},
-  ];
-  const lStarts:number[]=[];
-  layers.forEach(({z,s,tw})=>{
-    lStarts.push(pts.length);
-    BP.forEach(([px,py])=>{
-      const c=Math.cos(tw),si2=Math.sin(tw);
-      pts.push({x:(px*c-py*si2)*s+(r()-0.5)*0.016,y:(px*si2+py*c)*s+(r()-0.5)*0.016,z:z+(r()-0.5)*0.014});
     });
   });
-  for(let li=0;li<8;li++){
-    tris.push(...triStrip(lStarts[li],lStarts[li+1],BPN));
-    segs.push(...rS(lStarts[li],BPN));
-    for(let i=0;i<BPN;i++) segs.push([lStarts[li]+i,lStarts[li+1]+i]);
+  // Root system — underground spread
+  for(let root=0;root<6;root++){
+    const ang=(root/6)*Math.PI*2,t4=branch(0,0.84,0,Math.cos(ang)*0.7,0.28,Math.sin(ang)*0.7,0.38,8,0.020);
   }
-  segs.push(...rS(lStarts[8],BPN));
-  // Shell: 18×9 = 162 pts
-
-  // Cerebellum — 3 layers × 10 pts
-  const cbP:[number,number][]=[
-    [0.24,0.70],[0.36,0.78],[0.50,0.86],[0.58,0.94],[0.52,1.02],
-    [0.38,1.00],[0.24,0.92],[0.12,0.84],[0.04,0.76],[0.14,0.72],
-  ];
-  const cbN=10;
-  const cbLayers=[{z:-0.28,s:0.60},{z:0,s:1.0},{z:0.28,s:0.60}];
-  const cbStarts:number[]=[];
-  cbLayers.forEach(({z,s})=>{
-    cbStarts.push(pts.length);
-    cbP.forEach(([px,py])=>pts.push({x:px*s+(r()-0.5)*0.012,y:py*s+(r()-0.5)*0.012,z:z+(r()-0.5)*0.012}));
-  });
-  tris.push(...triStrip(cbStarts[0],cbStarts[1],cbN),...triStrip(cbStarts[1],cbStarts[2],cbN));
-  segs.push(...rS(cbStarts[0],cbN),...rS(cbStarts[1],cbN),...rS(cbStarts[2],cbN));
-  // 162+30 = 192
-
-  // Brainstem: 5 rings × 8 pts
-  for(let seg=0;seg<5;seg++){
-    const y=0.72+seg*0.10, bsR=0.055-seg*0.007, bsOff=pts.length;
-    for(let i=0;i<8;i++){const t=(i/8)*Math.PI*2;pts.push({x:bsR*Math.cos(t)-0.04,y,z:bsR*Math.sin(t)});}
-    if(seg>0) tris.push(...triStrip(bsOff-8,bsOff,8));
-    segs.push(...rS(bsOff,8));
+  // Canopy particle scatter (leaves)
+  for(let i=0;i<1800;i++){
+    const x=(r()-0.5)*1.50,y=-1.0+r()*1.20,z=(r()-0.5)*1.50;
+    pts.push({x:x+(r()-0.5)*0.04,y:y+(r()-0.5)*0.04,z:z+(r()-0.5)*0.04});
   }
-  // 192+40 = 232
-
-  // Sulci — cortex fold lines: 10 grooves × 14 pts = 140 pts
-  const sulciOffsets:[number,number,number][]=[
-    [-0.55, 0.08, 0.0],[-0.40, 0.42, 0.05],[0.0, 0.64, 0.1],
-    [0.28, 0.52, 0.1],[0.54, 0.22, 0.08],[0.56,-0.10, 0.05],
-    [0.38,-0.42, 0.0],[0.0,-0.70,-0.05],[-0.30,-0.60,-0.08],[-0.58,-0.20,-0.05],
-  ];
-  sulciOffsets.forEach(([cx,cy,cz])=>{
-    const sb=pts.length;
-    for(let i=0;i<14;i++){
-      const t=(i/13)*Math.PI;
-      pts.push({x:cx+Math.cos(t)*0.09+(r()-0.5)*0.02,y:cy+Math.sin(t)*0.07+(r()-0.5)*0.02,z:cz+(r()-0.5)*0.14});
-    }
-    segs.push(...cS(sb,sb+13));
-    for(let i=0;i<12;i++) tris.push({a:sb+i,b:sb+i+1,c:sb+i+(i%3===0?2:1)});
-  });
-  // 232+140 = 372
-
-  // Dense interior neural mesh: 600 pts
-  const intBase=pts.length;
-  for(let i=0;i<600;i++){
-    const ang=r()*Math.PI*2,rr=Math.pow(r(),0.6)*0.82;
-    pts.push({x:(rr*Math.cos(ang)*0.54-0.04)+(r()-0.5)*0.03,y:rr*Math.sin(ang)*0.56+(r()-0.5)*0.03,z:(r()-0.5)*0.48});
-  }
-  // Simple grid-based connectivity — avoid O(n²) on 600 pts
-  for(let i=0;i<600;i+=3){
-    for(let j=i+1;j<Math.min(i+12,600);j++){
-      const p=pts[intBase+i],q=pts[intBase+j];
-      const d2=(p.x-q.x)**2+(p.y-q.y)**2+(p.z-q.z)**2;
-      if(d2<0.040){ segs.push([intBase+i,intBase+j]); if(j+1<600) tris.push({a:intBase+i,b:intBase+j,c:intBase+j+1}); }
-    }
-    // Anchor to nearest shell
-    let bestD2=1e9,bestJ=0;
-    const pi=pts[intBase+i];
-    for(let j=0;j<BPN*9;j++){const d2=(pi.x-pts[j].x)**2+(pi.y-pts[j].y)**2+(pi.z-pts[j].z)**2;if(d2<bestD2){bestD2=d2;bestJ=j;}}
-    if(bestD2<0.22) segs.push([intBase+i,bestJ]);
-  }
-  // 372+600 = 972. PCB traces: 24 pts → 996. pad to 1200.
-
-  const traces=[[88,28],[88,42],[87,56],[12,28],[12,42],[13,56]];
-  traces.forEach(([sx,sy])=>{
-    const tBase=pts.length,dir=sx>50?1:-1;
-    for(let k=0;k<4;k++) pts.push({x:(sx+dir*k*5-50)/50,y:(sy-50)/50,z:0.02});
-    segs.push([tBase,tBase+1],[tBase+1,tBase+2],[tBase+2,tBase+3]);
-  });
-
-  return{pts:pad(pts,42),tris,segs,rgb:[80,180,255],tilt:0.22};
+  return{pts:pad(pts,42),tris,segs,rgb:[55,185,75],tilt:0.48};
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// SCENE 3 — FULL HUMAN BODY + NEURAL SIGNALS  (Reality)
-// ════════════════════════════════════════════════════════════════════════════
-function buildBody():Scene{
-  const r=lcg(55);
-  const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
-  const add=(x:number,y:number,z:number)=>{pts.push({x,y,z});return pts.length-1;};
+// ═══════════ SCENE 3 — HUMAN EYE (Reality & Perception) ═══════════
+// XZ-plane flat disc like the galaxy. X wide, Z wide, Y thin.
+function buildGrid():Scene{
+  const r=lcg(55);const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
+  const TY=()=>(r()-0.5)*0.072; // thin vertical — galaxy scale
 
-  // Head: 36-node circle
-  const hN=36,hBase=0;
-  for(let i=0;i<hN;i++){const t=(i/hN)*Math.PI*2;pts.push({x:0.15*Math.cos(t),y:-0.74+0.15*Math.sin(t)*0.94,z:(r()-0.5)*0.04});}
-  segs.push(...rS(hBase,hN));
-  for(let i=1;i<hN-1;i++) tris.push({a:hBase,b:hBase+i,c:hBase+i+1});
-  // Eyes: 6 pts each
-  for(let eye=0;eye<2;eye++){
-    const ex=eye===0?-0.06:0.06, ey=-0.72;
-    const eb=pts.length;
-    for(let i=0;i<6;i++){const t=(i/6)*Math.PI*2;pts.push({x:ex+0.032*Math.cos(t),y:ey+0.022*Math.sin(t),z:0.04});}
-    segs.push(...rS(eb,6));
-  }
-  // 36+12 = 48
-
-  // Neck: 8 pts
-  const neck=[add(-0.055,-0.58,0),add(0.055,-0.58,0)];
-  segs.push([hBase+27,neck[0]],[hBase+9,neck[1]],[neck[0],neck[1]]);
-
-  // Spine: 28 vertebrae from neck to pelvis
-  const spine:number[]=[];
-  for(let i=0;i<28;i++){
-    const idx=add((r()-0.5)*0.011,-0.55+i*0.072,(r()-0.5)*0.025);
-    spine.push(idx);
-    if(i>0) segs.push([spine[i-1],spine[i]]);
-  }
-  segs.push([neck[0],spine[0]],[neck[1],spine[0]]);
-  // 48+2+28 = 78
-
-  // Ribcage: 10 ribs (5 each side), 8 pts each
-  for(let rib=0;rib<10;rib++){
-    const side=rib<5?-1:1, ri=rib%5;
-    const y=-0.55+ri*0.068;
+  // Iris rings on XZ plane
+  const IRINGS=[{rad:0.055,n:8},{rad:0.120,n:16},{rad:0.195,n:24},{rad:0.275,n:32},{rad:0.365,n:40},{rad:0.460,n:50},{rad:0.565,n:60},{rad:0.680,n:70}];
+  IRINGS.forEach(({rad,n})=>{
     const rb=pts.length;
-    for(let i=0;i<8;i++){
-      const t=(i/7)*(Math.PI*0.72);
-      pts.push({x:side*(0.05+Math.sin(t)*0.28),y:y+Math.cos(t)*0.06,z:Math.sin(t*0.5)*0.12+(r()-0.5)*0.02});
-    }
-    segs.push(...cS(rb,rb+7));
-    segs.push([spine[ri+1],rb]);
-    for(let i=0;i<6;i++) tris.push({a:rb+i,b:rb+i+1,c:spine[ri+1]});
-  }
-  // 78+80 = 158
-
-  // Shoulders + arms + hands
-  const sL=add(-0.44,-0.52,0),sR=add(0.44,-0.52,0);
-  segs.push([spine[0],sL],[spine[0],sR],[sL,sR]);
-  tris.push({a:spine[0],b:sL,c:sR});
-  for(let side=0;side<2;side++){
-    const dir=side===0?-1:1, sh=side===0?sL:sR;
-    let prev=sh;
-    // Upper arm: 6, elbow, forearm: 6, wrist, hand: 5 fingers × 3
-    for(let i=1;i<=6;i++){const j=add(dir*(0.44+i*0.038),-0.52+i*0.076+(r()-0.5)*0.02,(r()-0.5)*0.04);segs.push([prev,j]);prev=j;}
-    const wrist=prev;
-    for(let f=0;f<5;f++){
-      let fp=wrist;
-      for(let k=1;k<=3;k++){const j=add(dir*(0.66+f*0.020+(r()-0.5)*0.01),0.02+f*0.012+k*0.032,(r()-0.5)*0.03);segs.push([fp,j]);fp=j;}
-    }
-  }
-  // 158+2+60 = 220 approx
-
-  // Pelvis + legs + feet
-  const hipL=add(-0.24,0.46,0),hipR=add(0.24,0.46,0);
-  segs.push([spine[27],hipL],[spine[27],hipR],[hipL,hipR]);
-  tris.push({a:spine[27],b:hipL,c:hipR});
-  for(let side=0;side<2;side++){
-    const dir=side===0?-1:1, hip=side===0?hipL:hipR;
-    let prev=hip;
-    // Thigh: 8, knee, shin: 8, ankle, foot: 5
-    for(let i=1;i<=8;i++){const j=add(dir*(0.24+i*0.005),0.46+i*0.076+(r()-0.5)*0.02,(r()-0.5)*0.04);segs.push([prev,j]);prev=j;}
-    const knee=prev;
-    for(let i=1;i<=8;i++){const j=add(dir*(0.24+8*0.005+i*0.004),0.46+8*0.076+i*0.074+(r()-0.5)*0.02,(r()-0.5)*0.04);segs.push([knee,j]);if(i>1)segs.push([j-1,j]);prev=j;}
-    const ankle=prev;
-    for(let t2=0;t2<5;t2++){const j=add(dir*(0.20-t2*0.018),ankle+0.01*(pts[ankle]?.y||0.0),0.04+t2*0.018);segs.push([ankle,j]);}
-  }
-  // ~350 pts structural. Rest: dense neural signal web
-
-  // Neural signal web — dense bursts from every spine node and joint
-  const sigBase=pts.length;
-  spine.forEach((si,i)=>{
-    const count=i%3===0?16:8;
-    for(let k=0;k<count;k++){
-      const side=k<count/2?-1:1,kk=k%(count/2);
-      const nx=add(side*(0.28+kk*0.10+r()*0.06),pts[si].y+(r()-0.5)*0.08,(r()-0.5)*0.16);
-      segs.push([si,nx]);
-      if(k>0) tris.push({a:si,b:nx,c:nx-1});
-    }
+    for(let i=0;i<n;i++){const a=(i/n)*Math.PI*2;pts.push({x:rad*Math.cos(a)+(r()-0.5)*0.006,y:TY(),z:rad*Math.sin(a)+(r()-0.5)*0.006});}
+    segs.push(...rS(rb,n));
+    for(let i=1;i<n-1;i+=2)tris.push({a:rb,b:rb+i,c:rb+i+1});
   });
-  // Fill to 1200 with more signal pts
-  while(pts.length<1200){
-    const spineIdx=spine[Math.floor(r()*spine.length)];
-    const sp=pts[spineIdx];
-    add(sp.x+(r()-0.5)*0.80,sp.y+(r()-0.5)*0.24,(r()-0.5)*0.24);
+  // Radial fibers
+  for(let f=0;f<52;f++){
+    const ang=(f/52)*Math.PI*2,fb=pts.length;
+    for(let k=0;k<=14;k++){const d=0.055+k*(0.625/14);pts.push({x:d*Math.cos(ang)+(r()-0.5)*0.009,y:TY(),z:d*Math.sin(ang)+(r()-0.5)*0.009});}
+    segs.push(...cS(fb,fb+14));
   }
-
-  return{pts:pad(pts,55),tris,segs,rgb:[160,92,255],tilt:0.06};
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// SCENE 4 — RELIGIOUS SYMBOLS  (Religion)
-// Cross + Star of David + Crescent + Lotus — layered at different z depths
-// ════════════════════════════════════════════════════════════════════════════
-function buildReligion():Scene{
-  const r=lcg(77);
-  const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
-
-  // ── CROSS (Christian) — centered, large, z=0
-  // Vertical bar: y from -0.86 to 0.86, width 0.10
-  const crossVN=40;
-  const cvL=pts.length;
-  for(let i=0;i<crossVN;i++) pts.push({x:-0.08+(r()-0.5)*0.012,y:-0.84+i*(1.68/(crossVN-1)),z:(r()-0.5)*0.04});
-  const cvR=pts.length;
-  for(let i=0;i<crossVN;i++) pts.push({x: 0.08+(r()-0.5)*0.012,y:-0.84+i*(1.68/(crossVN-1)),z:(r()-0.5)*0.04});
-  segs.push(...cS(cvL,cvL+crossVN-1),...cS(cvR,cvR+crossVN-1));
-  tris.push(...triStrip(cvL,cvR,crossVN));
-  // Horizontal bar: x from -0.50 to 0.50 at y≈0.28
-  const chN=30;
-  const chT=pts.length;
-  for(let i=0;i<chN;i++) pts.push({x:-0.50+i*(1.0/(chN-1)),y: 0.24+(r()-0.5)*0.012,z:(r()-0.5)*0.04});
-  const chB=pts.length;
-  for(let i=0;i<chN;i++) pts.push({x:-0.50+i*(1.0/(chN-1)),y: 0.32+(r()-0.5)*0.012,z:(r()-0.5)*0.04});
-  segs.push(...cS(chT,chT+chN-1),...cS(chB,chB+chN-1));
-  tris.push(...triStrip(chT,chB,chN));
-  // Connect cross bars
-  segs.push([cvL+20,chT+0],[cvR+20,chB+0],[cvL+21,chT+29],[cvR+21,chB+29]);
-  // Cross fill pts: 60
-  for(let i=0;i<60;i++){
-    let x,y;
-    if(r()<0.5){x=(r()-0.5)*0.16;y=-0.84+r()*1.68;} // vertical
-    else{x=-0.50+r()*1.0;y=0.24+r()*0.08;} // horizontal
-    pts.push({x,y,z:(r()-0.5)*0.04});
+  // Pupil
+  for(let i=0;i<180;i++){const ang=r()*Math.PI*2,d=Math.sqrt(r())*0.050;pts.push({x:d*Math.cos(ang),y:TY()*0.4,z:d*Math.sin(ang)});}
+  // Eyelids — wide in X, curved in Z
+  for(let lid=0;lid<2;lid++){
+    const sign=lid===0?-1:1;
+    for(let track=0;track<3;track++){
+      const sc=1.0+track*0.018,eb=pts.length;
+      for(let i=0;i<56;i++){const t=i/55,x=(t*2-1)*0.75*sc,z=sign*(0.30*sc)*(1-(t*2-1)**2);pts.push({x:x+(r()-0.5)*0.010,y:TY(),z:z+(r()-0.5)*0.008});}
+      segs.push(...cS(eb,eb+55));
+      if(track>0)tris.push(...triStrip(eb-56,eb,56));
+    }
   }
-  // Cross total: 40+40+30+30+60 = 200 pts
-
-  // ── STAR OF DAVID (Jewish) — offset top-right, z=0.14
-  const starR=0.34, starCX=0.55, starCY=-0.45, starZ=0.14;
-  for(let tri=0;tri<2;tri++){
+  // Signal rays
+  for(let ray=0;ray<40;ray++){
+    const ang=(ray/40)*Math.PI*2,rb=pts.length;
+    for(let k=0;k<=16;k++){const d=0.70+k*(0.68/16);pts.push({x:d*Math.cos(ang)+(r()-0.5)*0.020,y:TY(),z:d*Math.sin(ang)*0.82+(r()-0.5)*0.016});}
+    segs.push(...cS(rb,rb+16));
+  }
+  // Sclera
+  for(let track=0;track<3;track++){
     const sb=pts.length;
-    const triOff=tri*Math.PI/3;
-    // Each triangle: 36 pts (12 per side)
-    for(let side=0;side<3;side++){
-      const a1=triOff+(side/3)*Math.PI*2;
-      const a2=triOff+((side+1)/3)*Math.PI*2;
-      for(let i=0;i<12;i++){
-        const t=i/11;
-        pts.push({
-          x:starCX+(lerp(Math.cos(a1),Math.cos(a2),t)*starR)+(r()-0.5)*0.012,
-          y:starCY+(lerp(Math.sin(a1),Math.sin(a2),t)*starR)+(r()-0.5)*0.012,
-          z:starZ+(r()-0.5)*0.02
-        });
+    for(let i=0;i<60;i++){const a=(i/60)*Math.PI*2;pts.push({x:0.80*Math.cos(a)+(r()-0.5)*0.012,y:TY(),z:0.46*Math.sin(a)+(r()-0.5)*0.010});}
+    segs.push(...rS(sb,60));if(track>0)tris.push(...triStrip(sb-60,sb,60));
+  }
+  // Scatter
+  for(let i=0;i<1400;i++){const ang=r()*Math.PI*2,d=0.9+r()*1.5;pts.push({x:d*Math.cos(ang)+(r()-0.5)*0.12,y:(r()-0.5)*0.09,z:d*Math.sin(ang)*0.68+(r()-0.5)*0.10});}
+  return{pts:pad(pts,55),tris,segs,rgb:[155,195,255],tilt:0.18};
+}
+// ═══════════ SCENE 4 — DIVINE LIGHT (Religion & Meaning) ═══════════
+// Radiant center on XZ plane. Rays spread outward like a galaxy's spiral arms.
+// Worshipper figures flat on the disc edge.
+function buildReligion():Scene{
+  const r=lcg(77);const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
+  const TY=()=>(r()-0.5)*0.072;
+
+  // Divine source — dense core cluster at center
+  const coreB=pts.length;
+  for(let i=0;i<100;i++){const ang=r()*Math.PI*2,d=Math.pow(r(),0.5)*0.060;pts.push({x:d*Math.cos(ang)+(r()-0.5)*0.006,y:TY()*0.5,z:d*Math.sin(ang)+(r()-0.5)*0.006});}
+  for(let i=1;i<98;i+=2)tris.push({a:coreB,b:coreB+i,c:coreB+i+1});
+
+  // Halo rings around source
+  [{rad:0.09,n:16},{rad:0.18,n:26},{rad:0.30,n:38},{rad:0.44,n:52}].forEach(({rad,n})=>{
+    const hb=pts.length;
+    for(let i=0;i<n;i++){const a=(i/n)*Math.PI*2;pts.push({x:rad*Math.cos(a)+(r()-0.5)*0.008,y:TY(),z:rad*Math.sin(a)+(r()-0.5)*0.006});}
+    segs.push(...rS(hb,n));
+    for(let i=1;i<n-1;i+=2)tris.push({a:hb,b:hb+i,c:hb+i+1});
+  });
+
+  // Light rays — radiate outward on XZ plane (like spiral arms)
+  for(let ray=0;ray<32;ray++){
+    const ang=(ray/32)*Math.PI*2,rb=pts.length,len=0.55+r()*0.90;
+    for(let k=0;k<=22;k++){const d=0.05+k*(len/22);pts.push({x:d*Math.cos(ang)+(r()-0.5)*0.018,y:TY(),z:d*Math.sin(ang)+(r()-0.5)*0.018});}
+    segs.push(...cS(rb,rb+22));
+    if(ray>0)tris.push({a:rb-23,b:rb,c:rb+11});
+  }
+  // Secondary shorter rays between main rays
+  for(let ray=0;ray<24;ray++){
+    const ang=((ray+0.5)/24)*Math.PI*2,rb=pts.length,len=0.30+r()*0.35;
+    for(let k=0;k<=14;k++){const d=0.04+k*(len/14);pts.push({x:d*Math.cos(ang)+(r()-0.5)*0.012,y:TY(),z:d*Math.sin(ang)+(r()-0.5)*0.012});}
+    segs.push(...cS(rb,rb+14));
+  }
+
+  // Human figures — placed radially at outer edge, flat on disc
+  for(let fig=0;fig<8;fig++){
+    const ang=(fig/8)*Math.PI*2,fx=0.88*Math.cos(ang),fz=0.88*Math.sin(ang);
+    const FS=0.06;
+    // Head
+    const hb=pts.length;
+    for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2;pts.push({x:fx+FS*0.5*Math.cos(a),y:TY(),z:fz+FS*0.5*Math.sin(a)});}
+    segs.push(...rS(hb,8));
+    // Body + arms (radial lines from figure)
+    const bb=pts.length;
+    for(let k=0;k<=5;k++){const t=k/5;pts.push({x:fx*( 1-t*0.08),y:TY(),z:fz*(1-t*0.08)});}
+    segs.push(...cS(bb,bb+5));
+    for(let arm=0;arm<2;arm++){
+      const aang=ang+(arm===0?Math.PI*0.4:-Math.PI*0.4),ab=pts.length;
+      for(let k=0;k<=5;k++){const d=FS*(0.3+k*0.14);pts.push({x:fx+d*Math.cos(aang),y:TY(),z:fz+d*Math.sin(aang)});}
+      segs.push(...cS(ab,ab+5));
+    }
+  }
+
+  // Atmosphere scatter — dense near center, like galaxy core
+  for(let i=0;i<2200;i++){
+    const ang=r()*Math.PI*2,d=Math.pow(r(),0.45)*1.60;
+    pts.push({x:d*Math.cos(ang)+(r()-0.5)*0.08,y:(r()-0.5)*0.072,z:d*Math.sin(ang)+(r()-0.5)*0.08});
+  }
+  return{pts:pad(pts,77),tris,segs,rgb:[255,200,70],tilt:0.18};
+}
+// ═══════════ SCENE 5 — MIND OBSERVING ITSELF (Consciousness) ═══════════
+// Head circle flat on XZ plane like a galaxy disc. Brain mesh inside.
+// Observer node at center with self-referencing connections.
+function buildConnectome():Scene{
+  const r=lcg(99);const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
+  const TY=()=>(r()-0.5)*0.072;
+
+  // Head outline — ring on XZ plane
+  const HRX=0.44,HRZ=0.52,HN=72;
+  for(let track=0;track<3;track++){
+    const sc=1+track*0.018,hb=pts.length;
+    for(let i=0;i<HN;i++){const a=(i/HN)*Math.PI*2;pts.push({x:HRX*sc*Math.cos(a)+(r()-0.5)*0.010,y:TY(),z:HRZ*sc*Math.sin(a)+(r()-0.5)*0.010});}
+    segs.push(...rS(hb,HN));
+    if(track>0)tris.push(...triStrip(hb-HN,hb,HN));
+  }
+
+  // Brain neural mesh — scattered inside head ellipse
+  const BN=220,brainBase=pts.length;
+  for(let i=0;i<BN;i++){
+    const ang=r()*Math.PI*2,d=Math.pow(r(),0.5)*0.38;
+    pts.push({x:HRX*0.82*d*Math.cos(ang)+(r()-0.5)*0.012,y:TY(),z:HRZ*0.78*d*Math.sin(ang)*0.85+(r()-0.5)*0.012});
+  }
+  // Short neural connections
+  for(let i=0;i<BN;i++){
+    for(let j=i+1;j<BN;j++){
+      const pi=pts[brainBase+i],pj=pts[brainBase+j];
+      const d2=(pi.x-pj.x)**2+(pi.z-pj.z)**2;
+      if(d2<0.014&&d2>0.001){segs.push([brainBase+i,brainBase+j]);if(d2<0.007)tris.push({a:brainBase+i,b:brainBase+j,c:brainBase+(i+7)%BN});}
+    }
+  }
+
+  // Observer node — center ring
+  const obsBase=pts.length;
+  for(let i=0;i<20;i++){const a=(i/20)*Math.PI*2;pts.push({x:0.040*Math.cos(a),y:TY(),z:0.040*Math.sin(a)});}
+  segs.push(...rS(obsBase,20));
+  for(let i=1;i<19;i++)tris.push({a:obsBase,b:obsBase+i,c:obsBase+i+1});
+  // Self-referencing lines
+  for(let i=0;i<BN;i+=5){segs.push([obsBase,brainBase+i]);if(i+10<BN)segs.push([brainBase+i,brainBase+(i+10)%BN]);}
+
+  // Thought clusters — floating around head
+  [{x:-0.72,z:-0.30},{x:0.74,z:-0.38},{x:-0.68,z:0.34},{x:0.70,z:0.32}].forEach(({x,z})=>{
+    const tb=pts.length;
+    for(let i=0;i<55;i++){pts.push({x:x+(r()-0.5)*0.18,y:TY(),z:z+(r()-0.5)*0.14});}
+    for(let i=0;i<53;i+=3)segs.push([tb+i,tb+i+1]);
+    for(let i=0;i<51;i+=4)tris.push({a:tb+i,b:tb+i+2,c:tb+i+3});
+  });
+
+  // Awareness scatter — galaxy-like field
+  for(let i=0;i<2400;i++){
+    const ang=r()*Math.PI*2,d=0.55+Math.pow(r(),0.45)*1.10;
+    pts.push({x:d*Math.sin(ang)*0.88,y:(r()-0.5)*0.075,z:d*Math.cos(ang)*0.88});
+  }
+  return{pts:pad(pts,99),tris,segs,rgb:[100,155,255],tilt:0.18};
+}
+// ═══════════ SCENE 6 — RADIAL CIVILIZATION WEB (System View) ═══════════
+// 7 rings expanding from center on XZ plane — same flat disc as galaxy.
+function buildNested():Scene{
+  const r=lcg(33);const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
+  const TY=()=>(r()-0.5)*0.072;
+
+  const RINGS=[
+    {rad:0.00,n:1},{rad:0.18,n:5},{rad:0.34,n:10},{rad:0.52,n:16},
+    {rad:0.70,n:24},{rad:0.90,n:36},{rad:1.12,n:52},
+  ];
+  const ringNodeIdx:number[][]=[];
+
+  RINGS.forEach(({rad,n},ri)=>{
+    ringNodeIdx.push([]);
+    for(let ni=0;ni<n;ni++){
+      const ang=(ni/n)*Math.PI*2;
+      const px=rad===0?0:rad*Math.cos(ang)+(r()-0.5)*0.018;
+      const pz=rad===0?0:rad*Math.sin(ang)+(r()-0.5)*0.018;
+      const idx=pts.length;
+      ringNodeIdx[ri].push(idx);
+      pts.push({x:px,y:TY(),z:pz});
+      // Node cluster — bigger clusters on outer rings
+      const clSize=2+ri;
+      for(let k=0;k<clSize;k++){
+        const ca=r()*Math.PI*2,cd=(0.012+ri*0.009)*r();
+        pts.push({x:px+cd*Math.cos(ca)+(r()-0.5)*0.009,y:TY(),z:pz+cd*Math.sin(ca)+(r()-0.5)*0.009});
+        segs.push([idx,idx+k+1]);
       }
     }
-    segs.push(...cS(sb,sb+35));
-    tris.push({a:sb,b:sb+12,c:sb+24},{a:sb+6,b:sb+18,c:sb+30});
-  }
-  // Inner hexagon
-  const hexB=pts.length;
-  for(let i=0;i<12;i++){const t=(i/12)*Math.PI*2;pts.push({x:starCX+Math.cos(t)*starR*0.44,y:starCY+Math.sin(t)*starR*0.44,z:starZ});}
-  segs.push(...rS(hexB,12));
-  // Star pts: 72+12 = 84
-
-  // ── CRESCENT MOON (Islamic) — offset top-left, z=0.10
-  const moonCX=-0.58, moonCY=-0.44, moonZ=0.10;
-  const moonR=0.28,moonR2=0.22,moonOffX=0.10;
-  const moonN=50;
-  const moonB=pts.length;
-  for(let i=0;i<moonN;i++){
-    const t=(i/(moonN-1))*Math.PI*2;
-    const ox=moonR*Math.cos(t), oy=moonR*Math.sin(t);
-    // Subtract inner circle offset to create crescent
-    const ix=(ox-moonOffX)/moonR*moonR2, iy=oy/moonR*moonR2;
-    const inside=((ox-moonOffX)**2+oy**2)<moonR2*moonR2;
-    if(!inside){
-      pts.push({x:moonCX+ox+(r()-0.5)*0.012,y:moonCY+oy+(r()-0.5)*0.012,z:moonZ+(r()-0.5)*0.02});
-    } else {
-      pts.push({x:moonCX+moonOffX+ix+(r()-0.5)*0.010,y:moonCY+iy+(r()-0.5)*0.010,z:moonZ+(r()-0.5)*0.02});
+    // Connect ring nodes in circle
+    if(n>1){
+      const step=RINGS[ri].n>0?Math.ceil((pts.length-ringNodeIdx[ri][0])/n):1;
+      for(let ni=0;ni<n;ni++)segs.push([ringNodeIdx[ri][ni],ringNodeIdx[ri][(ni+1)%n]]);
     }
-  }
-  segs.push(...rS(moonB,moonN));
-  // Star near crescent
-  for(let i=0;i<5;i++){
-    const t=(i/5)*Math.PI*2;
-    pts.push({x:moonCX+0.22+Math.cos(t)*0.06,y:moonCY+0.08+Math.sin(t)*0.06,z:moonZ});
-  }
-  segs.push(...rS(pts.length-5,5));
-  // Crescent: 55 pts
-
-  // ── LOTUS FLOWER (Buddhism/Hinduism) — bottom center, z=0.08
-  const lotCX=0.0, lotCY=0.55, lotZ=0.08;
-  // 8 petals × 18 pts each
-  for(let petal=0;petal<8;petal++){
-    const ang=(petal/8)*Math.PI*2;
-    const pb=pts.length;
-    for(let i=0;i<18;i++){
-      const t=(i/17)*Math.PI;
-      const lx=Math.sin(t)*0.22, ly=Math.cos(t)*0.38+0.12;
-      const c=Math.cos(ang),s=Math.sin(ang);
-      pts.push({x:lotCX+lx*c-ly*s+(r()-0.5)*0.012,y:lotCY+lx*s+ly*c+(r()-0.5)*0.012,z:lotZ+petal*0.004});
-    }
-    segs.push(...cS(pb,pb+17));
-    for(let i=0;i<16;i++) tris.push({a:pb+i,b:pb+i+1,c:pts.length-1});
-  }
-  // Lotus center
-  const lotCenter=pts.length;
-  for(let i=0;i<14;i++){const t=(i/14)*Math.PI*2;pts.push({x:lotCX+Math.cos(t)*0.07,y:lotCY+Math.sin(t)*0.07,z:lotZ+0.06});}
-  segs.push(...rS(lotCenter,14));
-  // Lotus: 144+14 = 158 pts
-
-  // Background spiritual scatter: fill remaining to 1200
-  // Cross 200 + Star 84 + Crescent 55 + Lotus 158 = 497
-  // Need 703 more
-  while(pts.length<1200){
-    const ang=r()*Math.PI*2,rad=r()*1.0;
-    pts.push({x:rad*Math.cos(ang)+(r()-0.5)*0.08,y:rad*Math.sin(ang)+(r()-0.5)*0.08,z:(r()-0.5)*0.40});
-  }
-
-  return{pts:pad(pts,77),tris,segs,rgb:[255,185,55],tilt:0.22};
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// SCENE 5 — CONNECTOME / MIND MAP  (Consciousness)
-// Nodes on 3D sphere, KNN-connected — pure neural network topology
-// ════════════════════════════════════════════════════════════════════════════
-function buildConnectome():Scene{
-  const r=lcg(99);
-  const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
-
-  // 3 concentric shells of nodes
-  // Inner shell (r=0.28): 60 pts
-  const s1=fibSphere(60,0.28,r);
-  const b1=0;
-  pts.push(...s1);
-  segs.push(...rS(b1,60));
-
-  // Middle shell (r=0.55): 160 pts
-  const b2=pts.length;
-  pts.push(...fibSphere(160,0.55,r));
-  segs.push(...rS(b2,160));
-
-  // Outer shell (r=0.88): 280 pts
-  const b3=pts.length;
-  pts.push(...fibSphere(280,0.88,r));
-  segs.push(...rS(b3,280));
-  // 500 pts so far
-
-  // Connect inner→middle: each inner node to 3 nearest middle nodes
-  s1.forEach((pi,i)=>{
-    const midPts=pts.slice(b2,b2+160);
-    const dists=midPts.map((p,j)=>({j,d2:(pi.x-p.x)**2+(pi.y-p.y)**2+(pi.z-p.z)**2}))
-      .sort((a,b)=>a.d2-b.d2).slice(0,3);
-    dists.forEach(({j},k)=>{
-      segs.push([b1+i,b2+j]);
-      if(k<2) tris.push({a:b1+i,b:b2+j,c:b2+dists[(k+1)%3].j});
-    });
   });
 
-  // Connect middle→outer: each middle node to 2 nearest outer nodes
-  for(let i=0;i<160;i++){
-    const pi=pts[b2+i];
-    const outerPts=pts.slice(b3,b3+280);
-    const dists=outerPts.map((p,j)=>({j,d2:(pi.x-p.x)**2+(pi.y-p.y)**2+(pi.z-p.z)**2}))
-      .sort((a,b)=>a.d2-b.d2).slice(0,2);
-    dists.forEach(({j})=>segs.push([b2+i,b3+j]));
-    if(dists.length===2) tris.push({a:b2+i,b:b3+dists[0].j,c:b3+dists[1].j});
+  // Radial spines — center outward through all rings
+  for(let oi=0;oi<RINGS[6].n;oi+=2){
+    const ang=(oi/RINGS[6].n)*Math.PI*2,sb=pts.length;
+    for(let k=0;k<=28;k++){const d=k*(1.12/28);pts.push({x:d*Math.cos(ang)+(r()-0.5)*0.016,y:TY(),z:d*Math.sin(ang)+(r()-0.5)*0.016});}
+    segs.push(...cS(sb,sb+28));
+    tris.push({a:sb,b:sb+14,c:sb+28});
   }
 
-  // Dense interior fill: 700 scattered nodes inside sphere r<0.88
-  for(let i=0;i<700;i++){
-    const phi=Math.acos(1-2*r()),th=r()*Math.PI*2;
-    const rr=Math.pow(r(),0.5)*0.85;
-    pts.push({x:rr*Math.sin(phi)*Math.cos(th),y:rr*Math.sin(phi)*Math.sin(th),z:rr*Math.cos(phi)});
-  }
-  // 500+700 = 1200 ✓
-
-  // Connect interior pts to nearest shell node in batches
-  for(let i=0;i<700;i+=4){
-    const pi=pts[500+i];
-    let bestD2=1e9,bestJ=0;
-    for(let j=0;j<500;j++){const d2=(pi.x-pts[j].x)**2+(pi.y-pts[j].y)**2+(pi.z-pts[j].z)**2;if(d2<bestD2){bestD2=d2;bestJ=j;}}
-    if(bestD2<0.35) segs.push([500+i,bestJ]);
-    if(i+1<700&&i+2<700) tris.push({a:500+i,b:500+i+1,c:bestJ});
-  }
-
-  return{pts:pad(pts,99),tris,segs,rgb:[48,205,245],tilt:0.20};
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// SCENE 6 — NESTED SPHERES  (System View)
-// 6 shells at growing radii, representing Matter→Cognition layers
-// ════════════════════════════════════════════════════════════════════════════
-function buildNested():Scene{
-  const r=lcg(33);
-  const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
-
-  // 6 spherical shells: r = 0.16, 0.30, 0.46, 0.62, 0.78, 0.95
-  const shells=[
-    {rad:0.16, n: 24},
-    {rad:0.30, n: 55},
-    {rad:0.46, n: 96},
-    {rad:0.62, n:155},
-    {rad:0.78, n:234},
-    {rad:0.95, n:348},
-  ];
-  // Total: 24+55+96+155+234+348 = 912 shell pts
-
-  const sStarts:number[]=[];
-  shells.forEach(({rad,n})=>{
-    sStarts.push(pts.length);
-    pts.push(...fibSphere(n,rad,r));
-  });
-
-  // Ring outlines at equator of each shell
-  shells.forEach(({rad,n},si)=>{
-    const base=sStarts[si];
-    // Equatorial ring: pts near y≈0
-    const eqPts=pts.slice(base,base+n)
-      .map((p,i)=>({i,ay:Math.abs(p.y)}))
-      .filter(x=>x.ay<rad*0.25)
-      .sort((a,b)=>a.ay-b.ay)
-      .slice(0,Math.min(16,n));
-    segs.push(...rS(base+eqPts[0]?.i||0, eqPts.length));
-    // Meridian ring
-    const merPts=pts.slice(base,base+n)
-      .map((p,i)=>({i,ax:Math.abs(p.x)}))
-      .filter(x=>x.ax<rad*0.25)
-      .sort((a,b)=>a.ax-b.ax)
-      .slice(0,Math.min(16,n));
-    if(merPts.length>2) segs.push(...rS(base+merPts[0].i,merPts.length));
-  });
-
-  // Connect adjacent shells: each node in shell i → nearest node in shell i+1
-  for(let si=0;si<5;si++){
-    const an=shells[si].n, bn=shells[si+1].n;
-    const aO=sStarts[si], bO=sStarts[si+1];
-    // Sample every 3rd pt in inner shell for performance
-    for(let i=0;i<an;i+=3){
-      const pi=pts[aO+i];
-      let bestD2=1e9,bestJ=0;
-      for(let j=0;j<bn;j++){const d2=(pi.x-pts[bO+j].x)**2+(pi.y-pts[bO+j].y)**2+(pi.z-pts[bO+j].z)**2;if(d2<bestD2){bestD2=d2;bestJ=j;}}
-      segs.push([aO+i,bO+bestJ]);
-      if(i+3<an) tris.push({a:aO+i,b:aO+i+3,c:bO+bestJ});
+  // Cross-ring connections
+  for(let ri=0;ri<6;ri++){
+    const inner=ringNodeIdx[ri],outer=ringNodeIdx[ri+1];
+    for(let ni=0;ni<inner.length;ni++){
+      const nearO=Math.round((ni/Math.max(inner.length,1))*outer.length)%outer.length;
+      segs.push([inner[ni],outer[nearO]]);
+      tris.push({a:inner[ni],b:outer[nearO],c:outer[(nearO+1)%outer.length]});
     }
   }
 
-  // Fill remaining 288 pts between shells for density
-  while(pts.length<1200){
-    const si=Math.floor(r()*5);
-    const ra=shells[si].rad, rb=shells[si+1].rad;
-    const rr=ra+r()*(rb-ra);
-    const phi=Math.acos(1-2*r()),th=r()*Math.PI*2;
-    pts.push({x:rr*Math.sin(phi)*Math.cos(th),y:rr*Math.sin(phi)*Math.sin(th),z:rr*Math.cos(phi)});
+  // Field scatter — density gradient inward
+  for(let i=0;i<2600;i++){
+    const ang=r()*Math.PI*2,d=Math.pow(r(),0.5)*1.40;
+    pts.push({x:d*Math.cos(ang)+(r()-0.5)*0.08,y:(r()-0.5)*0.072,z:d*Math.sin(ang)+(r()-0.5)*0.08});
   }
-
-  return{pts:pad(pts,33),tris,segs,rgb:[65,200,148],tilt:0.14};
+  return{pts:pad(pts,33),tris,segs,rgb:[45,210,145],tilt:0.18};
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-// SCENE 7 — DEEP STAR FIELD  (Questions)
-// 1200 pts with wide z spread, Milky Way band, constellation edges
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════ SCENE 7 — STAR FIELD ═══════════
 function buildStarField():Scene{
-  const r=lcg(111);
-  const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
-
-  // Milky Way band: 400 pts concentrated near y=0, wide x/z spread
-  for(let i=0;i<400;i++){
-    const x=(r()-0.5)*3.6;
-    const y=(r()-0.5)*0.28; // thin band
-    const z=-1.80+r()*3.60;
-    pts.push({x,y,z});
-  }
-
-  // Scattered background stars: 600 pts in wide sphere
-  for(let i=0;i<600;i++){
-    const phi=Math.acos(1-2*r()),th=r()*Math.PI*2;
-    const rr=0.4+r()*1.55;
-    pts.push({x:rr*Math.sin(phi)*Math.cos(th),y:rr*Math.sin(phi)*Math.sin(th)*0.7,z:rr*Math.cos(phi)});
-  }
-
-  // Nearby bright stars (large apparent size via projection): 80 pts close to viewer
-  for(let i=0;i<80;i++){
-    pts.push({x:(r()-0.5)*0.80,y:(r()-0.5)*0.60,z:-0.2+r()*0.40});
-  }
-
-  // Nebula cloud clusters: 120 pts in 4 clusters
-  for(let c=0;c<4;c++){
-    const cx=(r()-0.5)*2.0,cy=(r()-0.5)*1.0,cz=(r()-0.5)*1.8;
-    for(let i=0;i<30;i++){
-      pts.push({x:cx+(r()-0.5)*0.22,y:cy+(r()-0.5)*0.18,z:cz+(r()-0.5)*0.22});
-    }
-  }
-  // Total: 400+600+80+120 = 1200 ✓
-
-  // Constellation-like edges: connect 24 nearby bright pairs
-  const near=pts.slice(0,400+600);
-  for(let k=0;k<24;k++){
-    const i=Math.floor(r()*200);
-    let bestD2=1e9,bestJ=i;
-    for(let j=i+1;j<Math.min(i+40,near.length);j++){
-      const d2=(near[i].x-near[j].x)**2+(near[i].y-near[j].y)**2+(near[i].z-near[j].z)**2;
-      if(d2<bestD2&&d2>0.02){bestD2=d2;bestJ=j;}
-    }
-    if(bestJ!==i){ segs.push([i,bestJ]); if(k<12) tris.push({a:i,b:bestJ,c:(i+bestJ)%1000}); }
-  }
-
-  return{pts:pad(pts,111),tris,segs,rgb:[210,88,162],tilt:0.16};
+  const r=lcg(111);const pts:V3[]=[],tris:Tri[]=[],segs:[number,number][]=[];
+  // Milky Way band 3000 pts
+  for(let i=0;i<3000;i++){const x=(r()-0.5)*3.80,yB=(r()-0.5)*0.22,z=-2.20+r()*4.40,tilt=0.52;pts.push({x:x+(r()-0.5)*0.10,y:yB*Math.cos(tilt)-z*0.08*Math.sin(tilt),z:z+yB*0.08*Math.sin(tilt)});}
+  // Near stars 600 pts
+  for(let i=0;i<600;i++)pts.push({x:(r()-0.5)*1.60,y:(r()-0.5)*1.20,z:-0.30+r()*0.50});
+  // Mid-distance 1350 pts
+  for(let i=0;i<1350;i++){const phi=Math.acos(1-2*r()),th=r()*Math.PI*2,rr=0.40+r()*1.50;pts.push({x:rr*Math.sin(phi)*Math.cos(th)*1.30,y:rr*Math.sin(phi)*Math.sin(th)*0.88,z:rr*Math.cos(phi)});}
+  // Distant 450 pts
+  for(let i=0;i<450;i++){const phi=Math.acos(1-2*r()),th=r()*Math.PI*2,rr=1.50+r()*1.10;pts.push({x:rr*Math.sin(phi)*Math.cos(th)*1.10,y:rr*Math.sin(phi)*Math.sin(th)*0.80,z:rr*Math.cos(phi)});}
+  // Nebula clusters 4×100 = 400
+  [{x:0.80,y:0.40,z:-0.50},{x:-0.90,y:-0.30,z:0.60},{x:0.20,y:-0.70,z:-0.80},{x:-0.50,y:0.60,z:0.30}].forEach(nc=>{
+    const nb=pts.length;for(let i=0;i<100;i++)pts.push({x:nc.x+(r()-0.5)*0.30,y:nc.y+(r()-0.5)*0.24,z:nc.z+(r()-0.5)*0.30});
+    for(let i=0;i<98;i+=2)tris.push({a:nb+i,b:nb+i+1,c:nb+(i+20)%100});segs.push(...rS(nb,20));
+  });
+  // Constellation edges 60
+  for(let k=0;k<60;k++){const i=1000+Math.floor(r()*200);let bd2=0.08,bj=-1;for(let j=i+1;j<Math.min(i+30,1200);j++){const d2=(pts[i].x-pts[j].x)**2+(pts[i].y-pts[j].y)**2+(pts[i].z-pts[j].z)**2;if(d2<bd2&&d2>0.008){bd2=d2;bj=j;}}if(bj>=0)segs.push([i,bj]);}
+  return{pts:pad(pts,111),tris,segs,rgb:[200,100,200],tilt:0.40};
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// BUILD ALL SCENES
-// ════════════════════════════════════════════════════════════════════════════
-const SCENES:Scene[]=[
-  buildGalaxy(),    // 0 Hero
-  buildECG(),       // 1 Life
-  buildBrain(),     // 2 Evolution
-  buildBody(),      // 3 Reality
-  buildReligion(),  // 4 Religion
-  buildConnectome(),// 5 Consciousness
-  buildNested(),    // 6 System View
-  buildStarField(), // 7 Questions
+const SCENES:Scene[]=[buildGalaxy(),buildDNA(),buildTree(),buildGrid(),buildReligion(),buildConnectome(),buildNested(),buildStarField()];
+SCENES.forEach(sc=>{sc.tris=sc.tris.filter(t=>t.a<SHAPE_N&&t.b<SHAPE_N&&t.c<SHAPE_N);sc.segs=sc.segs.filter(([a,b])=>a<SHAPE_N&&b<SHAPE_N);});
+
+// ═══════════ SOLAR SYSTEM — centered, 9 planets ═══════════
+const _sRng=lcg(333);
+const STAR_GLINTS=Array.from({length:28},()=>({fx:0.04+_sRng()*0.92,fy:0.04+_sRng()*0.92,sz:5+_sRng()*20,pulse:_sRng()*Math.PI*2}));
+
+// 9 planets: Mercury→Pluto. sz = base px at 1440px wide screen
+const SS_PLANETS=[
+  {n:'Mercury',of:0.100,sp:4.147,a0:0.80,sz:5,  cb:[178,168,158] as [number,number,number],ch:[225,218,210] as [number,number,number],cd:[108,98,88]  as [number,number,number],bands:0,ring:false,ringC:null},
+  {n:'Venus',  of:0.165,sp:1.621,a0:1.20,sz:9,  cb:[230,205,125] as [number,number,number],ch:[255,242,180] as [number,number,number],cd:[172,152,72]  as [number,number,number],bands:0,ring:false,ringC:null},
+  {n:'Earth',  of:0.230,sp:1.000,a0:0.50,sz:10, cb:[52,122,192]  as [number,number,number],ch:[138,180,232] as [number,number,number],cd:[20,70,130]   as [number,number,number],bands:0,ring:false,ringC:null},
+  {n:'Mars',   of:0.305,sp:0.531,a0:-0.3,sz:7,  cb:[192,78,48]   as [number,number,number],ch:[232,140,108] as [number,number,number],cd:[135,45,25]   as [number,number,number],bands:0,ring:false,ringC:null},
+  {n:'Jupiter',of:0.460,sp:0.084,a0:0.20,sz:28, cb:[200,165,122] as [number,number,number],ch:[230,200,160] as [number,number,number],cd:[148,108,76]   as [number,number,number],bands:8,ring:false,ringC:null},
+  {n:'Saturn', of:0.580,sp:0.034,a0:-0.5,sz:22, cb:[210,195,148] as [number,number,number],ch:[240,225,185] as [number,number,number],cd:[158,138,98]   as [number,number,number],bands:6,ring:true, ringC:[205,192,155] as [number,number,number]},
+  {n:'Uranus', of:0.700,sp:0.012,a0:0.80,sz:16, cb:[152,218,222] as [number,number,number],ch:[195,242,246] as [number,number,number],cd:[96,170,182]   as [number,number,number],bands:0,ring:true, ringC:[120,195,205] as [number,number,number]},
+  {n:'Neptune',of:0.820,sp:0.006,a0:1.50,sz:15, cb:[62,100,212]  as [number,number,number],ch:[118,152,242] as [number,number,number],cd:[36,65,158]    as [number,number,number],bands:0,ring:false,ringC:null},
+  {n:'Pluto',  of:0.940,sp:0.004,a0:2.20,sz:3,  cb:[188,170,148] as [number,number,number],ch:[215,200,182] as [number,number,number],cd:[138,118,98]   as [number,number,number],bands:0,ring:false,ringC:null},
 ];
-// Clamp all indices to safe range
-SCENES.forEach(sc=>{
-  sc.tris=sc.tris.filter(t=>t.a<SHAPE_N&&t.b<SHAPE_N&&t.c<SHAPE_N);
-  sc.segs=sc.segs.filter(([a,b])=>a<SHAPE_N&&b<SHAPE_N);
-});
 
-// ════════════════════════════════════════════════════════════════════════════
-// RENDERER
-// ════════════════════════════════════════════════════════════════════════════
-function drawMesh(
-  ctx:CanvasRenderingContext2D,
-  scA:Scene, scB:Scene,
-  morphT:number,
-  proj:Float32Array,
-){
-  const eased=morphT<0.5?4*morphT**3:1-(-2*morphT+2)**3/2;
-  const aA=1-eased, aB=eased;
-  const[rA,gA,bA]=scA.rgb,[rB,gB,bB]=scB.rgb;
-  const R=(rA+(rB-rA)*eased+0.5)|0;
-  const G=(gA+(gB-gA)*eased+0.5)|0;
-  const B=(bA+(bB-bA)*eased+0.5)|0;
+const JUP_BANDS:[[number,number,number],[number,number,number],[number,number,number],[number,number,number]]=[
+  [222,185,142],[182,145,105],[238,205,165],[168,130,95]
+];
+const SAT_BANDS:[[number,number,number],[number,number,number],[number,number,number]]=[
+  [232,215,168],[198,178,130],[245,228,188]
+];
 
-  const mkStyles=(alpha:number)=>Array.from({length:BUCKETS},(_,k)=>{
-    const br=0.020+(k/(BUCKETS-1))*0.20;
-    return `rgba(${R},${G},${B},${Math.min(br*alpha,0.28).toFixed(3)})`;
+function drawStarGlint(ctx:CanvasRenderingContext2D,x:number,y:number,sz:number,alpha:number){
+  const spikes=[[sz,0],[sz*0.42,Math.PI/4],[sz,Math.PI/2],[sz*0.42,Math.PI*3/4],
+                [sz,Math.PI],[sz*0.42,Math.PI*5/4],[sz,Math.PI*3/2],[sz*0.42,Math.PI*7/4]];
+  spikes.forEach(([len,ang],i)=>{
+    const lw=i%2===0?1.2:0.7, op=i%2===0?alpha:alpha*0.50;
+    const g=ctx.createLinearGradient(x,y,x+Math.cos(ang)*len,y+Math.sin(ang)*len);
+    g.addColorStop(0,`rgba(255,255,255,${op.toFixed(3)})`);
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(ang)*len,y+Math.sin(ang)*len);
+    ctx.strokeStyle=g;ctx.lineWidth=lw;ctx.stroke();
   });
+  const cg=ctx.createRadialGradient(x,y,0,x,y,sz*0.35);
+  cg.addColorStop(0,`rgba(255,255,255,${alpha.toFixed(3)})`);
+  cg.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.beginPath();ctx.arc(x,y,sz*0.35,0,Math.PI*2);ctx.fillStyle=cg;ctx.fill();
+}
+
+function drawPlanet(
+  ctx:CanvasRenderingContext2D,px:number,py:number,pr:number,
+  cb:[number,number,number],ch:[number,number,number],cd:[number,number,number],
+  alpha:number
+){
+  // 1 gradient for atmosphere glow (was 4) — solid disc + highlight spot
+  const ag=ctx.createRadialGradient(px,py,pr*0.8,px,py,pr*3.0);
+  ag.addColorStop(0,`rgba(${cb[0]},${cb[1]},${cb[2]},${(alpha*0.18).toFixed(3)})`);
+  ag.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath();ctx.arc(px,py,pr*3.0,0,Math.PI*2);ctx.fillStyle=ag;ctx.fill();
+  // Solid disc
+  ctx.beginPath();ctx.arc(px,py,pr,0,Math.PI*2);
+  ctx.fillStyle=`rgba(${cb[0]},${cb[1]},${cb[2]},${alpha.toFixed(3)})`;ctx.fill();
+  // Lit-side highlight — simple lighter arc, no gradient
+  ctx.beginPath();ctx.arc(px-pr*0.3,py-pr*0.3,pr*0.42,0,Math.PI*2);
+  ctx.fillStyle=`rgba(${ch[0]},${ch[1]},${ch[2]},${(alpha*0.45).toFixed(3)})`;ctx.fill();
+}
+
+function drawBands(ctx:CanvasRenderingContext2D,px:number,py:number,pr:number,cols:[number,number,number][],alpha:number){
+  ctx.save();ctx.beginPath();ctx.arc(px,py,pr,0,Math.PI*2);ctx.clip();
+  const n=cols.length*2;
+  for(let i=0;i<n;i++){
+    const y0=py-pr+i*(pr*2/n),bh=pr*2/n,c=cols[i%cols.length];
+    const ba=i%3===0?0.42:0.26;
+    ctx.fillStyle=`rgba(${c[0]},${c[1]},${c[2]},${(alpha*ba).toFixed(3)})`;
+    ctx.fillRect(px-pr,y0,pr*2,bh);
+  }
+  ctx.restore();
+}
+
+function drawSolarSystem(ctx:CanvasRenderingContext2D,w:number,h:number,elapsed:number,collapseT:number,alpha:number){
+  if(alpha<0.01) return;
+  const cE=collapseT*collapseT*(3-2*collapseT);
+  const rScale=1-cE, spinBoost=1+cE*11;
+
+  // ── Layout: Sun at CENTER, all 9 orbits fit within viewport ──
+  const sunX=w*0.50;
+  const sunY=h*0.50;
+  // Sun radius — visible but not dominating (scales with screen)
+  const sunR=Math.min(w,h)*0.032*(1-cE*0.45);
+
+  // Orbit plane: flat perspective ellipses rotated slightly
+  // FLAT controls how "tilted" the plane looks (0.38 = moderate 3D perspective)
+  const TILT=0.18;   // radians CCW rotation of whole system
+  const FLAT=0.38;   // b/a ratio: 1=circle, 0=flat line
+
+  // maxOrb: outermost orbit (Pluto of=0.940) must stay inside viewport with margin
+  const margin=Math.max(sunR*1.8, 22);
+  const maxOrb=Math.max(1, Math.min(w*0.50, h*0.50/FLAT)*0.88*rScale - margin);
+
+  const orbPos=(frac:number,th:number):[number,number]=>{
+    const a=Math.max(0, frac*maxOrb), b=Math.max(0, a*FLAT);
+    const cosT=Math.cos(TILT),sinT=Math.sin(TILT);
+    return[sunX+a*Math.cos(th)*cosT - b*Math.sin(th)*sinT,
+           sunY+a*Math.cos(th)*sinT + b*Math.sin(th)*cosT];
+  };
+
+  // ── 1. Star glints (background) ──
+  STAR_GLINTS.forEach(sg=>{
+    const gx=sg.fx*w, gy=sg.fy*h;
+    const pulse=0.55+0.45*Math.sin(elapsed*1.6+sg.pulse);
+    drawStarGlint(ctx,gx,gy,sg.sz*pulse,alpha*0.70);
+  });
+
+  // ── 2. Orbit lines — clear, slightly glowing ──
+  SS_PLANETS.forEach((p,pi)=>{
+    const a=Math.max(0.1, p.of*maxOrb), b=Math.max(0.1, a*FLAT);
+    if(a<1) return; // skip if collapsed too small
+    // Subtle glow pass (wider, very faint)
+    ctx.beginPath();ctx.ellipse(sunX,sunY,a,b,TILT,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(160,200,255,${(alpha*0.06).toFixed(3)})`;ctx.lineWidth=3;ctx.stroke();
+    // Main orbit line
+    ctx.beginPath();ctx.ellipse(sunX,sunY,a,b,TILT,0,Math.PI*2);
+    // Slight colour tint per planet family
+    const orbitCol=pi<4?'180,210,255':pi<8?'210,220,255':'220,200,255';
+    ctx.strokeStyle=`rgba(${orbitCol},${(alpha*0.22).toFixed(3)})`;
+    ctx.lineWidth=0.85;ctx.stroke();
+  });
+
+  // ── 3. Planets ──
+  const sc=Math.min(w,h)/900; // size scale based on screen size
+  const planetData=SS_PLANETS.map(p=>{
+    const th=p.a0+elapsed*p.sp*spinBoost;
+    const[px,py]=orbPos(p.of,th);
+    return{...p,px,py,th,pR:Math.max(2,p.sz*sc*(1-cE*0.55))};
+  });
+
+  // Painter's sort: bottom (higher py) rendered last = on top
+  planetData.sort((a,b)=>a.py-b.py);
+
+  planetData.forEach(p=>{
+    const{px,py,pR}=p;
+    if(pR<0.8) return;
+
+    // Saturn back ring
+    if(p.n==='Saturn'&&p.ring){
+      const rf=FLAT*0.76,rBands=[
+        {ri:pR*1.20,ro:pR*1.52,op:0.48,c:[185,172,138] as [number,number,number]},
+        {ri:pR*1.55,ro:pR*2.10,op:0.82,c:[215,200,158] as [number,number,number]},
+        {ri:pR*2.14,ro:pR*2.30,op:0.22,c:[128,118,98]  as [number,number,number]},
+        {ri:pR*2.33,ro:pR*2.70,op:0.60,c:[205,188,150] as [number,number,number]},
+      ];
+      rBands.forEach(rb=>{
+        ctx.beginPath();ctx.ellipse(px,py,rb.ro,rb.ro*rf,TILT,Math.PI,Math.PI*2);
+        ctx.strokeStyle=`rgba(${rb.c[0]},${rb.c[1]},${rb.c[2]},${(alpha*rb.op).toFixed(3)})`;
+        ctx.lineWidth=Math.max(1,rb.ro-rb.ri);ctx.stroke();
+      });
+    }
+    // Uranus back ring
+    if(p.n==='Uranus'&&p.ring){
+      ctx.beginPath();ctx.ellipse(px,py,pR*2.0,pR*2.0*FLAT*0.80,TILT+0.4,Math.PI,Math.PI*2);
+      ctx.strokeStyle=`rgba(120,195,205,${(alpha*0.38).toFixed(3)})`;ctx.lineWidth=pR*0.30;ctx.stroke();
+    }
+
+    // Planet disc
+    drawPlanet(ctx,px,py,pR,p.cb,p.ch,p.cd,alpha);
+
+    // Bands
+    if(p.n==='Jupiter') drawBands(ctx,px,py,pR,JUP_BANDS as any,alpha);
+    if(p.n==='Saturn')  drawBands(ctx,px,py,pR,SAT_BANDS as any,alpha);
+
+    // Earth: clouds + moon
+    if(p.n==='Earth'){
+      ctx.save();ctx.beginPath();ctx.arc(px,py,pR,0,Math.PI*2);ctx.clip();
+      // Cloud bands
+      ctx.fillStyle=`rgba(255,255,255,${(alpha*0.12).toFixed(3)})`;
+      ctx.fillRect(px-pR,py-pR*0.38,pR*2,pR*0.28);
+      ctx.fillStyle=`rgba(255,255,255,${(alpha*0.07).toFixed(3)})`;
+      ctx.fillRect(px-pR,py+pR*0.18,pR*2,pR*0.16);
+      ctx.restore();
+      // Moon
+      const ma=p.th*13.37,md=pR*3.4;
+      const mx=px+Math.cos(ma)*md,my=py+Math.sin(ma)*md*FLAT;
+      const moonR=Math.max(1.2,pR*0.27);
+      const mg=ctx.createRadialGradient(mx-moonR*0.3,my-moonR*0.3,0,mx,my,moonR);
+      mg.addColorStop(0,`rgba(225,225,235,${alpha.toFixed(3)})`);
+      mg.addColorStop(1,`rgba(160,160,170,${(alpha*0.9).toFixed(3)})`);
+      ctx.beginPath();ctx.arc(mx,my,moonR,0,Math.PI*2);ctx.fillStyle=mg;ctx.fill();
+    }
+
+    // Saturn front ring
+    if(p.n==='Saturn'&&p.ring){
+      const rf=FLAT*0.76,rBands=[
+        {ri:pR*1.20,ro:pR*1.52,op:0.48,c:[185,172,138] as [number,number,number]},
+        {ri:pR*1.55,ro:pR*2.10,op:0.82,c:[215,200,158] as [number,number,number]},
+        {ri:pR*2.14,ro:pR*2.30,op:0.22,c:[128,118,98]  as [number,number,number]},
+        {ri:pR*2.33,ro:pR*2.70,op:0.60,c:[205,188,150] as [number,number,number]},
+      ];
+      rBands.forEach(rb=>{
+        ctx.beginPath();ctx.ellipse(px,py,rb.ro,rb.ro*rf,TILT,0,Math.PI);
+        ctx.strokeStyle=`rgba(${rb.c[0]},${rb.c[1]},${rb.c[2]},${(alpha*rb.op).toFixed(3)})`;
+        ctx.lineWidth=Math.max(1,rb.ro-rb.ri);ctx.stroke();
+      });
+    }
+    // Uranus front ring
+    if(p.n==='Uranus'&&p.ring){
+      ctx.beginPath();ctx.ellipse(px,py,pR*2.0,pR*2.0*FLAT*0.80,TILT+0.4,0,Math.PI);
+      ctx.strokeStyle=`rgba(120,195,205,${(alpha*0.38).toFixed(3)})`;ctx.lineWidth=pR*0.30;ctx.stroke();
+    }
+  });
+
+  // ── 6. Sun — drawn on top of inner-orbit planets ──
+  // Solar flare / corona ray lines
+  if(cE<0.75){
+    const nRays=16, cA=alpha*(1-cE*1.3)*0.22;
+    for(let i=0;i<nRays;i++){
+      const ang=(i/nRays)*Math.PI*2+elapsed*0.04;
+      const len=sunR*(1.18+0.14*Math.sin(elapsed*2.2+i*0.8));
+      ctx.beginPath();
+      ctx.moveTo(sunX+Math.cos(ang)*sunR*0.88,sunY+Math.sin(ang)*sunR*0.88);
+      ctx.lineTo(sunX+Math.cos(ang)*len,      sunY+Math.sin(ang)*len);
+      ctx.strokeStyle=`rgba(255,240,80,${cA.toFixed(3)})`;ctx.lineWidth=2.2;ctx.stroke();
+    }
+  }
+  // Outer diffuse corona — bright yellow-white
+  [[sunR*5.0,0.55],[sunR*3.2,0.38],[sunR*1.9,0.28]].forEach(([rad,op])=>{
+    const cg=ctx.createRadialGradient(sunX,sunY,sunR*0.55,sunX,sunY,rad as number);
+    cg.addColorStop(0,  `rgba(255,252,180,${(alpha*(op as number)).toFixed(3)})`);
+    cg.addColorStop(0.35,`rgba(255,235,80, ${(alpha*(op as number)*0.40).toFixed(3)})`);
+    cg.addColorStop(1,  'rgba(255,210,20,0)');
+    ctx.beginPath();ctx.arc(sunX,sunY,rad as number,0,Math.PI*2);ctx.fillStyle=cg;ctx.fill();
+  });
+  // Sun disc — single bright yellow
+  ctx.beginPath();ctx.arc(sunX,sunY,sunR,0,Math.PI*2);
+  ctx.fillStyle=`rgba(255,225,0,${alpha.toFixed(3)})`;ctx.fill();
+
+  // ── 7. Collapse flash ──
+  if(collapseT>0.85){
+    const fl=(collapseT-0.85)/0.15;
+    const fg=ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,Math.max(w,h)*0.55*fl);
+    fg.addColorStop(0,`rgba(255,255,255,${(fl*0.55).toFixed(3)})`);
+    fg.addColorStop(0.3,`rgba(255,220,120,${(fl*0.22).toFixed(3)})`);
+    fg.addColorStop(1,'rgba(255,180,60,0)');
+    ctx.beginPath();ctx.arc(sunX,sunY,Math.max(w,h)*0.55*fl,0,Math.PI*2);ctx.fillStyle=fg;ctx.fill();
+  }
+}
+
+// ═══════════ RENDERER — perf-optimised ═══════════
+// Path2D pool — lazy init inside drawMesh so SSR (Node.js) never sees Path2D
+let _triPaths:Path2D[]|null=null;
+function getTriPaths():Path2D[]{
+  if(!_triPaths)_triPaths=Array.from({length:BUCKETS},()=>new Path2D());
+  return _triPaths;
+}
+
+function drawMesh(ctx:CanvasRenderingContext2D,scA:Scene,scB:Scene,morphT:number,proj:Float32Array){
+  const eased=morphT<0.5?4*morphT**3:1-(-2*morphT+2)**3/2;
+  const aA=morphT>0.97?0:1-eased;
+  const aB=morphT<0.03?0:eased;
+  const[rA,gA,bA]=scA.rgb,[rB,gB,bB]=scB.rgb;
+  const R=(rA+(rB-rA)*eased+0.5)|0,G=(gA+(gB-gA)*eased+0.5)|0,B2=(bA+(bB-bA)*eased+0.5)|0;
 
   const drawTris=(tris:Tri[],alpha:number)=>{
-    if(alpha<0.012) return;
-    const styles=mkStyles(alpha);
-    const paths=Array.from({length:BUCKETS},()=>new Path2D());
+    if(alpha<0.012||!tris.length) return;
+    // Reset pooled paths (lazy-inited, SSR-safe)
+    const tp=getTriPaths();
+    for(let k=0;k<BUCKETS;k++) tp[k]=new Path2D();
     for(let k=0;k<tris.length;k++){
-      const{a,b,c}=tris[k];
-      const ai=a*3,bi=b*3,ci=c*3;
-      const ax=proj[ai],ay=proj[ai+1];
-      const bx=proj[bi],by=proj[bi+1];
-      const cx=proj[ci],cy=proj[ci+1];
-      if(Math.abs((bx-ax)*(cy-ay)-(cx-ax)*(by-ay))<0.5) continue;
+      const{a,b,c}=tris[k],ai=a*3,bi=b*3,ci=c*3;
+      const ax=proj[ai],ay=proj[ai+1],bx=proj[bi],by=proj[bi+1],cx2=proj[ci],cy2=proj[ci+1];
+      if(Math.abs((bx-ax)*(cy2-ay)-(cx2-ax)*(by-ay))<0.4) continue;
       const avgZ=(proj[ai+2]+proj[bi+2]+proj[ci+2])/3;
-      const bucket=Math.min(BUCKETS-1,Math.max(0,((avgZ+1)*0.5*BUCKETS)|0));
-      const p=paths[bucket];
-      p.moveTo(ax,ay);p.lineTo(bx,by);p.lineTo(cx,cy);p.closePath();
+      const bucket=clamp(((avgZ+1.2)*0.42*BUCKETS)|0,0,BUCKETS-1);
+      const p=tp[bucket];p.moveTo(ax,ay);p.lineTo(bx,by);p.lineTo(cx2,cy2);p.closePath();
     }
     for(let k=0;k<BUCKETS;k++){
-      ctx.fillStyle=styles[k]; ctx.fill(paths[k]);
-      ctx.strokeStyle=styles[k]; ctx.lineWidth=0.30; ctx.stroke(paths[k]);
+      const br=0.028+(k/(BUCKETS-1))*0.32;
+      const f=`rgba(${R},${G},${B2},${Math.min(br*alpha,0.40).toFixed(3)})`;
+      ctx.fillStyle=f;ctx.fill(tp[k]);ctx.strokeStyle=f;ctx.lineWidth=0.20;ctx.stroke(tp[k]);
     }
   };
-  drawTris(scA.tris,aA);
-  drawTris(scB.tris,aB);
+  // Skip triangle fill during morph — segs+dots still render. Saves ~60% draw cost.
+  const inTransition=morphT>0.015&&morphT<0.985;
+  if(!inTransition){
+    if(aA>0.012) drawTris(scA.tris,aA);
+    if(aB>0.012) drawTris(scB.tris,aB);
+  }
 
   const drawSegs=(segs:[number,number][],alpha:number)=>{
-    if(alpha<0.012) return;
-    ctx.beginPath();
-    ctx.strokeStyle=`rgba(${R},${G},${B},${(alpha*0.48).toFixed(3)})`;
-    ctx.lineWidth=0.65;
-    for(let k=0;k<segs.length;k++){
-      const[a,b]=segs[k];
-      ctx.moveTo(proj[a*3],proj[a*3+1]);
-      ctx.lineTo(proj[b*3],proj[b*3+1]);
-    }
+    if(alpha<0.012||!segs.length) return;
+    ctx.beginPath();ctx.strokeStyle=`rgba(${R},${G},${B2},${(alpha*0.46).toFixed(3)})`;ctx.lineWidth=0.48;
+    for(let k=0;k<segs.length;k++){const[a,b2]=segs[k];ctx.moveTo(proj[a*3],proj[a*3+1]);ctx.lineTo(proj[b2*3],proj[b2*3+1]);}
     ctx.stroke();
   };
-  drawSegs(scA.segs,aA);
-  drawSegs(scB.segs,aB);
+  if(aA>0.012) drawSegs(scA.segs,aA);
+  if(aB>0.012) drawSegs(scB.segs,aB);
 
-  // Nodes — 3 glow passes
-  ctx.beginPath();ctx.fillStyle=`rgba(${R},${G},${B},0.042)`;
-  for(let i=0;i<TOTAL_N;i++){const sx=proj[i*3],sy=proj[i*3+1],d=proj[i*3+2];const br=clamp(0.42+(d+1)*0.26,0,1);const rad=2.8+br*5.2;ctx.moveTo(sx+rad,sy);ctx.arc(sx,sy,rad,0,6.2832);}
-  ctx.fill();
-
-  ctx.beginPath();ctx.fillStyle=`rgba(${R},${G},${B},0.14)`;
-  for(let i=0;i<TOTAL_N;i++){const sx=proj[i*3],sy=proj[i*3+1],d=proj[i*3+2];const br=clamp(0.42+(d+1)*0.26,0,1);const rad=0.9+br*1.8;ctx.moveTo(sx+rad,sy);ctx.arc(sx,sy,rad,0,6.2832);}
-  ctx.fill();
-
-  ctx.beginPath();ctx.fillStyle='rgba(218,238,255,0.90)';
-  for(let i=0;i<TOTAL_N;i++){const sx=proj[i*3],sy=proj[i*3+1],d=proj[i*3+2];const br=clamp(0.32+(d+1)*0.30,0,1);const rad=0.42+br*0.78;ctx.moveTo(sx+rad,sy);ctx.arc(sx,sy,rad,0,6.2832);}
-  ctx.fill();
+  // Dots — fillRect: ~8x faster than arc(), no bezier computation
+  // Glow pass: every 3rd point, larger square, tinted color
+  ctx.fillStyle=`rgba(${R},${G},${B2},0.10)`;
+  for(let i=0;i<TOTAL_N;i+=3){
+    const sx=proj[i*3],sy=proj[i*3+1],d=proj[i*3+2];
+    const sz=clamp(0.9+(d+1.2)*0.55,0.9,2.4);
+    ctx.fillRect(sx-sz,sy-sz,sz*2,sz*2);
+  }
+  // Core pass: every 2nd point, sharp bright pixel
+  ctx.fillStyle='rgba(220,238,255,0.82)';
+  for(let i=0;i<TOTAL_N;i+=2){
+    const sx=proj[i*3],sy=proj[i*3+1],d=proj[i*3+2];
+    const sz=clamp(0.28+(d+1.2)*0.22,0.28,0.9);
+    ctx.fillRect(sx-sz,sy-sz,sz*2,sz*2);
+  }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// COMPONENT
-// ════════════════════════════════════════════════════════════════════════════
+// ═══════════ COMPONENT ═══════════
 export default function GlobalBackground(){
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
-
   useEffect(()=>{
-    const canvas=canvasRef.current;
-    if(!canvas) return;
-    const ctx=canvas.getContext('2d',{alpha:false});
-    if(!ctx) return;
-
+    const canvas=canvasRef.current;if(!canvas)return;
+    const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)return;
     let w=0,h=0,dpr=1,raf=0;
     const T0=performance.now();
     let bgGrad:CanvasGradient|null=null;
-
     let scrollRaw=0,scrollSmooth=0;
-    const buildBG=()=>{
-      bgGrad=ctx.createRadialGradient(w*0.42,h*0.44,0,w*0.5,h*0.5,Math.max(w,h)*0.82);
-      bgGrad.addColorStop(0,'#1a3d82');bgGrad.addColorStop(0.28,'#0e2558');
-      bgGrad.addColorStop(0.60,'#061432');bgGrad.addColorStop(1.0,'#020810');
-    };
-    const resize=()=>{
-      dpr=Math.min(window.devicePixelRatio||1,1.5);
-      w=window.innerWidth;h=window.innerHeight;
-      canvas.width=(w*dpr)|0;canvas.height=(h*dpr)|0;
-      canvas.style.width=w+'px';canvas.style.height=h+'px';
-      ctx.scale(dpr,dpr);buildBG();
-    };
-    resize();
-    window.addEventListener('resize',resize,{passive:true});
+    let scrollSection=0;   // hard-snap integer — which section the user is IN right now
+    let lastFrame=0;
+
+    const buildBG=()=>{bgGrad=ctx.createRadialGradient(w*0.42,h*0.44,0,w*0.5,h*0.5,Math.max(w,h)*0.82);bgGrad.addColorStop(0,'#1a3d82');bgGrad.addColorStop(0.28,'#0e2558');bgGrad.addColorStop(0.60,'#061432');bgGrad.addColorStop(1.0,'#020810');};
+    const resize=()=>{dpr=Math.min(window.devicePixelRatio||1,1.0);w=window.innerWidth;h=window.innerHeight;canvas.width=(w*dpr)|0;canvas.height=(h*dpr)|0;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.scale(dpr,dpr);buildBG();};
+    resize();window.addEventListener('resize',resize,{passive:true});
+    // Section offsets cached — scroll handler does zero DOM reads, zero reflow
+    const SECTION_IDS=['hero','life','evolution','reality','religion','consciousness','sysview','questions'];
+    const NS_S=SECTION_IDS.length;
+    let secTops:number[]=new Array(NS_S).fill(0);
+    const cacheSectionTops=()=>{secTops=SECTION_IDS.map(id=>document.getElementById(id)?.offsetTop??0);};
+    cacheSectionTops();
+    setTimeout(cacheSectionTops,600);
+    window.addEventListener('resize',cacheSectionTops,{passive:true});
+
     const onScroll=()=>{
-      const maxY=document.documentElement.scrollHeight-window.innerHeight;
-      scrollRaw=maxY>0?window.scrollY/maxY:0;
+      const sy=window.scrollY,vh=window.innerHeight;
+      let sec=0,prog=0;
+      for(let i=NS_S-1;i>=0;i--){
+        if(sy+vh*0.40>=secTops[i]){
+          sec=i;
+          if(i<NS_S-1){const secH=Math.max(1,secTops[i+1]-secTops[i]);prog=clamp((sy+vh*0.40-secTops[i])/secH,0,1);}
+          break;
+        }
+      }
+      scrollSection=sec;
+      scrollRaw=(sec+prog)/(NS_S-1);
     };
     window.addEventListener('scroll',onScroll,{passive:true});
 
     const rng=lcg(88);
     const orbAngles=new Float32Array(ORBIT_N).map((_,i)=>(i/ORBIT_N)*Math.PI*2);
-    const orbSpeeds=new Float32Array(ORBIT_N).map(()=>0.055+rng()*0.095);
-    const orbRadii =new Float32Array(ORBIT_N).map(()=>0.95+rng()*0.42);
-    const orbIncs  =new Float32Array(ORBIT_N).map(()=>(rng()-0.5)*1.0);
-    for(let i=0;i<ORBIT_N;i++) orbAngles[i]=(i/ORBIT_N)*Math.PI*2;
-
+    const orbSpeeds=new Float32Array(ORBIT_N).map(()=>0.042+rng()*0.076);
+    const orbRadii=new Float32Array(ORBIT_N).map(()=>0.98+rng()*0.44);
+    const orbIncs=new Float32Array(ORBIT_N).map(()=>(rng()-0.5)*1.0);
     const proj=new Float32Array(TOTAL_N*3);
-    const ROT_SPEED=0.12;
-    const FOV=3.2;
+    const ROT_SPEED_BASE=0.10,FOV=3.2;
+
+    // Scroll-reactive rotation state
+    let rotAccum=0;           // accumulated rotation angle
+    let lastScrollY=window.scrollY;
+    let scrollVel=0;          // px/ms raw scroll speed
+    let scrollVelSmooth=0;    // smoothed for rotation boost
+    // At 4px/ms scroll speed: 4x base rotation speed (moderate)
+    const SCROLL_BOOST_MAX=2.5;  // moderate: 2.5x max rotation at fast scroll
+    const SCROLL_BOOST_SENSITIVITY=0.012;
 
     const frame=(now:number)=>{
       if(document.hidden){raf=requestAnimationFrame(frame);return;}
+      // Frame-time guard: never run faster than 71fps, avoids spiral on 144hz monitors
+      if(now-lastFrame<20){raf=requestAnimationFrame(frame);return;}
+      const dt=clamp(now-lastFrame,1,50);
+      lastFrame=now;
       const elapsed=(now-T0)*0.001;
 
+      // Track scroll velocity
+      const currentScrollY=window.scrollY;
+      const rawVel=Math.abs(currentScrollY-lastScrollY)/dt;
+      lastScrollY=currentScrollY;
+      scrollVel+=(rawVel-scrollVel)*0.35;
+      scrollVelSmooth+=(scrollVel-scrollVelSmooth)*0.08;
+
+      // Scroll-reactive rotation: baseline + boost, decays organically when stopped
+      const scrollBoost=clamp(scrollVelSmooth*SCROLL_BOOST_SENSITIVITY,0,SCROLL_BOOST_MAX);
+      const rotSpeed=ROT_SPEED_BASE*(1+scrollBoost);
+      rotAccum+=rotSpeed*(dt/1000);
+
       scrollSmooth+=(scrollRaw-scrollSmooth)*0.08;
-      const sp=clamp(scrollSmooth,0,0.9999);
-      const NS=SCENES.length;
-      const raw=sp*(NS-1);
-      const fi=raw|0;
-      const ti=fi+1<NS?fi+1:NS-1;
-      const t=raw-fi;
-      const morphT=t<0.5?2*t*t:(4-2*t)*t-1;
-
+      const sp=clamp(scrollSmooth,0,0.9999),NS=SCENES.length,raw=sp*(NS-1);
+      const fi=raw|0,ti=fi+1<NS?fi+1:NS-1;
+      const tRaw=raw-fi;
+      // Transition only fires in the last 18% of each section's scroll range.
+      // First 82% of scrolling through a section = scene stays fully locked.
+      const TRANS=0.18;
+      const tAdj=tRaw<(1-TRANS)?0:clamp((tRaw-(1-TRANS))/TRANS,0,1);
+      const morphT=tAdj<0.5?2*tAdj*tAdj:(4-2*tAdj)*tAdj-1;
       const scA=SCENES[fi],scB=SCENES[ti];
-      const tilt=lerp(scA.tilt,scB.tilt,morphT);
-      const rotY=elapsed*ROT_SPEED;
+      const tilt=lerp(scA.tilt,scB.tilt,morphT),rotY=rotAccum;
+      const cY=Math.cos(rotY),sY=Math.sin(rotY),cT=Math.cos(tilt),sT=Math.sin(tilt);
+      const sq=(w<h?w:h)*0.80,half=sq*0.5,cx2=w*0.5,cy2=h*0.5;
 
-      const cY=Math.cos(rotY),sY=Math.sin(rotY);
-      const cT=Math.cos(tilt),sT=Math.sin(tilt);
-      const sq=(w<h?w:h)*0.84;
-      const half=sq*0.5,cx2=w*0.5,cy2=h*0.5;
-
-      const ptsA=scA.pts,ptsB=scB.pts;
+      const pA=scA.pts,pB=scB.pts;
       for(let i=0;i<SHAPE_N;i++){
-        const pA=ptsA[i],pB=ptsB[i];
-        const mx=pA.x+(pB.x-pA.x)*morphT;
-        const my=pA.y+(pB.y-pA.y)*morphT;
-        const mz=pA.z+(pB.z-pA.z)*morphT;
-        const rx=mx*cY+mz*sY, rz=-mx*sY+mz*cY;
-        const ry2=my*cT-rz*sT, rz2=my*sT+rz*cT;
-        const d=FOV/(FOV+rz2);
-        proj[i*3]=cx2+rx*half*d;
-        proj[i*3+1]=cy2+ry2*half*d;
-        proj[i*3+2]=rz2;
+        const a=pA[i],b=pB[i],mx=a.x+(b.x-a.x)*morphT,my=a.y+(b.y-a.y)*morphT,mz=a.z+(b.z-a.z)*morphT;
+        const rx=mx*cY+mz*sY,rz=-mx*sY+mz*cY,ry2=my*cT-rz*sT,rz2=my*sT+rz*cT,d=FOV/(FOV+rz2);
+        proj[i*3]=cx2+rx*half*d;proj[i*3+1]=cy2+ry2*half*d;proj[i*3+2]=rz2;
       }
-
-      for(let i=0;i<ORBIT_N;i++) orbAngles[i]+=orbSpeeds[i]*0.010;
+      for(let i=0;i<ORBIT_N;i++) orbAngles[i]+=orbSpeeds[i]*0.008;
       for(let i=0;i<ORBIT_N;i++){
-        const idx=SHAPE_N+i;
-        const ang=orbAngles[i],rad=orbRadii[i],inc=orbIncs[i];
-        const ox=Math.cos(ang)*rad*Math.cos(inc);
-        const oy=Math.sin(inc)*rad*0.7;
-        const oz=Math.sin(ang)*rad*Math.cos(inc);
-        const rx=ox*cY+oz*sY,rz=-ox*sY+oz*cY;
-        const ry2=oy*cT-rz*sT,rz2=oy*sT+rz*cT;
-        const d=FOV/(FOV+rz2);
-        proj[idx*3]=cx2+rx*half*d;
-        proj[idx*3+1]=cy2+ry2*half*d;
-        proj[idx*3+2]=rz2;
+        const idx=SHAPE_N+i,ang=orbAngles[i],rad=orbRadii[i],inc=orbIncs[i];
+        const ox=Math.cos(ang)*rad*Math.cos(inc),oy=Math.sin(inc)*rad*0.7,oz=Math.sin(ang)*rad*Math.cos(inc);
+        const rx=ox*cY+oz*sY,rz=-ox*sY+oz*cY,ry2=oy*cT-rz*sT,rz2=oy*sT+rz*cT,d=FOV/(FOV+rz2);
+        proj[idx*3]=cx2+rx*half*d;proj[idx*3+1]=cy2+ry2*half*d;proj[idx*3+2]=rz2;
       }
 
-      if(bgGrad){ctx.fillStyle=bgGrad;}else{ctx.fillStyle='#060e22';}
+      if(bgGrad)ctx.fillStyle=bgGrad;else ctx.fillStyle='#060e22';
       ctx.fillRect(0,0,w,h);
-
       drawMesh(ctx,scA,scB,morphT,proj);
 
-      const eased2=morphT<0.5?4*morphT**3:1-(-2*morphT+2)**3/2;
-      const[rA,gA,bA]=scA.rgb,[rB,gB,bB]=scB.rgb;
-      const fR=(rA+(rB-rA)*eased2+0.5)|0;
-      const fG=(gA+(gB-gA)*eased2+0.5)|0;
-      const fB=(bA+(bB-bA)*eased2+0.5)|0;
-      ctx.beginPath();
-      ctx.fillStyle=`rgba(${fR},${fG},${fB},0.16)`;
-      for(let i=0;i<ORBIT_N;i+=3){
-        const idx=(SHAPE_N+i)*3;
-        const sx=proj[idx],sy=proj[idx+1];
-        const ts=half*0.010+Math.sin(elapsed*0.80+i)*half*0.004;
+      // ── Overlays: use scrollSection (hard snap) not smoothed fi ──
+      // Solar system: ONLY while user is on hero section (0). Hard off the instant they leave.
+      if(scrollSection===0){
+        const collapseT=clamp(morphT*1.4,0,1);
+        const solarAlpha=clamp(1-morphT*1.4,0,1);
+        drawSolarSystem(ctx,w,h,elapsed,collapseT,solarAlpha);
+      }
+      // Section 1 (Life/Tree): particle cloud morphs into tree shape — no overlay
+
+      // Orbital fragment triangles
+      const[rA2,gA2,bA2]=scA.rgb,[rB2,gB2,bB2]=scB.rgb;
+      const ea2=morphT<0.5?4*morphT**3:1-(-2*morphT+2)**3/2;
+      const fR=(rA2+(rB2-rA2)*ea2+0.5)|0,fG=(gA2+(gB2-gA2)*ea2+0.5)|0,fB2=(bA2+(bB2-bA2)*ea2+0.5)|0;
+      ctx.beginPath();ctx.fillStyle=`rgba(${fR},${fG},${fB2},0.11)`;
+      for(let i=0;i<ORBIT_N;i+=4){
+        const idx=(SHAPE_N+i)*3,sx=proj[idx],sy=proj[idx+1];
+        const ts=half*0.008+Math.sin(elapsed*0.75+i)*half*0.003;
         ctx.moveTo(sx,sy-ts);ctx.lineTo(sx+ts*0.86,sy+ts*0.5);ctx.lineTo(sx-ts*0.86,sy+ts*0.5);ctx.closePath();
       }
       ctx.fill();
 
       raf=requestAnimationFrame(frame);
     };
-
     raf=requestAnimationFrame(frame);
-    return()=>{
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize',resize);
-      window.removeEventListener('scroll',onScroll);
-    };
+    return()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',resize);window.removeEventListener('scroll',onScroll);};
   },[]);
-
-  return(
-    <canvas
-      ref={canvasRef}
-      style={{position:'fixed',inset:0,pointerEvents:'none',zIndex:0}}
-      aria-hidden="true"
-    />
-  );
+  return <canvas ref={canvasRef} style={{position:'fixed',inset:0,pointerEvents:'none',zIndex:0}} aria-hidden="true"/>;
 }

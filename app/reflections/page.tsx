@@ -112,9 +112,13 @@ function LifeFlowDiagram() {
             </div>
             {i < FLOW_NODES.length - 1 && (
               <div className={styles["flow-connector"]}>
-                <div className={styles["flow-connector-line"]} />
-                <svg width="8" height="5" viewBox="0 0 8 5">
-                  <path d="M0 0 L4 5 L8 0" fill="none" stroke="currentColor" strokeWidth="1"/>
+                <svg width="20" height="28" viewBox="0 0 20 28" style={{display:"block",margin:"0 auto"}}>
+                  <line x1="10" y1="0" x2="10" y2="20" stroke="#4A7AAA" strokeWidth="1" strokeOpacity="0.5"/>
+                  <path d="M6 16 L10 22 L14 16" fill="none" stroke="#4A7AAA" strokeWidth="1" strokeOpacity="0.5"/>
+                  <circle r="3" fill="#7BAAD4" opacity="0.9">
+                    <animateMotion dur="1.8s" begin={`${i * 0.30}s`} repeatCount="indefinite"
+                      path="M10,2 L10,20"/>
+                  </circle>
                 </svg>
               </div>
             )}
@@ -158,6 +162,25 @@ function EvoBranchDiagram() {
             </g>
           );
         })}
+        {/* Traveling dot along the branch spine */}
+        {(() => {
+          const pathD = EVO_POS.map((p,i) => `${i===0?"M":"L"}${tx(p.x).toFixed(1)},${ty(p.y).toFixed(1)}`).join(" ");
+          return (
+            <>
+              <path id="evo-spine" d={pathD} fill="none" stroke="none"/>
+              <circle r="4" fill="#7BAAD4" opacity="0.85">
+                <animateMotion dur="4.2s" repeatCount="indefinite">
+                  <mpath href="#evo-spine"/>
+                </animateMotion>
+              </circle>
+              <circle r="2.5" fill="#A8D4F0" opacity="0.6">
+                <animateMotion dur="4.2s" begin="0.6s" repeatCount="indefinite">
+                  <mpath href="#evo-spine"/>
+                </animateMotion>
+              </circle>
+            </>
+          );
+        })()}
       </svg>
     </div>
   );
@@ -184,9 +207,13 @@ function PredictiveStack() {
             </div>
             {i < PRED_LAYERS.length - 1 && (
               <div className={styles["pred-arrow"]}>
-                <svg width="1" height="16" viewBox="0 0 1 16">
-                  <line x1="0.5" y1="0" x2="0.5" y2="10" stroke="#4A7AAA" strokeWidth="1"/>
-                  <path d="M-2.5 8 L0.5 12 L3.5 8" fill="none" stroke="#4A7AAA" strokeWidth="1"/>
+                <svg width="20" height="24" viewBox="0 0 20 24" style={{display:"block",margin:"0 auto"}}>
+                  <line x1="10" y1="0" x2="10" y2="16" stroke="#4A7AAA" strokeWidth="1" strokeOpacity="0.5"/>
+                  <path d="M6 12 L10 18 L14 12" fill="none" stroke="#4A7AAA" strokeWidth="1" strokeOpacity="0.5"/>
+                  <circle r="2.8" fill="#b08ee0" opacity="0.85">
+                    <animateMotion dur="2.2s" begin={`${i * 0.44}s`} repeatCount="indefinite"
+                      path="M10,1 L10,15"/>
+                  </circle>
                 </svg>
               </div>
             )}
@@ -312,67 +339,6 @@ export default function ReflectionsPage() {
 
   useLayoutEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
-    const ctx = gsap.context(() => {
-
-      // Word-by-word scroll reveal
-      document.querySelectorAll<HTMLElement>(`.${styles["word-block"]}`).forEach(block => {
-        const words = block.querySelectorAll<HTMLElement>(`.${styles.word}`);
-        if (!words.length) return;
-        gsap.fromTo(words,
-          { opacity:0.06, y:6, filter:"blur(2px)" },
-          { opacity:1, y:0, filter:"blur(0px)", stagger:0.035, ease:"none",
-            scrollTrigger: { trigger:block, start:"top 82%", end:"bottom 38%", scrub:0.5 } }
-        );
-      });
-
-      // Section headers slide up
-      gsap.utils.toArray<Element>(`.${styles["cin-header"]}`).forEach(el => {
-        gsap.from(el, { opacity:0, y:24, duration:0.9, ease:"power3.out",
-          scrollTrigger: { trigger:el, start:"top 86%", toggleActions:"play none none none" } });
-      });
-
-      // Curiosity lines slide in
-      gsap.utils.toArray<Element>(`.${styles["curiosity-line"]}`).forEach(el => {
-        gsap.from(el, { opacity:0, x:-16, duration:0.7, ease:"power2.out",
-          scrollTrigger: { trigger:el, start:"top 88%", toggleActions:"play none none none" } });
-      });
-
-      // Diagrams float up
-      gsap.utils.toArray<Element>(`.${styles["diagram-float"]}`).forEach(el => {
-        gsap.from(el, { opacity:0, y:36, duration:1.0, ease:"power2.out",
-          scrollTrigger: { trigger:el, start:"top 84%", toggleActions:"play none none none" } });
-      });
-
-      // Gold line draws
-      gsap.utils.toArray<Element>(`.${styles["gold-line"]}`).forEach(el => {
-        gsap.from(el, { scaleX:0, transformOrigin:"left center", duration:0.7, ease:"power2.out",
-          scrollTrigger: { trigger:el, start:"top 90%", toggleActions:"play none none none" } });
-      });
-
-      // Consciousness c-lines stagger
-      const cSection = document.getElementById("consciousness");
-      if (cSection) {
-        gsap.to(cSection.querySelectorAll(`.${styles["c-line"]}`), {
-          opacity:1, y:0, stagger:0.16, duration:0.8, ease:"power2.out",
-          scrollTrigger: { trigger:cSection, start:"top 64%", toggleActions:"play none none none" }
-        });
-      }
-
-      // Questions list stagger
-      gsap.from(document.querySelectorAll(`.${styles["q-item"]}`), {
-        opacity:0, x:-16, stagger:0.07, duration:0.55, ease:"power2.out",
-        scrollTrigger: { trigger:`.${styles["questions-list"]}`, start:"top 82%", toggleActions:"play none none none" }
-      });
-
-      // Hero portrait parallax
-      const portrait = document.querySelector("[data-hero-portrait]");
-      if (portrait && !window.matchMedia("(max-width:900px)").matches) {
-        gsap.fromTo(portrait, { y:0 }, { y:38, ease:"none",
-          scrollTrigger: { trigger:"#hero", start:"top top", end:"bottom top", scrub:true } });
-      }
-
-    }, containerRef);
-    return () => ctx.revert();
   }, []);
 
   useEffect(() => {
@@ -493,7 +459,6 @@ export default function ReflectionsPage() {
       <section id="evolution" className={styles["cin-section"]}>
         <span className={styles["section-index"]}>02</span>
         <div className={styles["cin-layout"]}>
-          <EvoBranchDiagram />
           <div className={styles["cin-text-col"]}>
             <CuriosityLine text="How did instinct become intelligence — and what comes next?" />
             <div className={styles["cin-header"]}>
@@ -509,6 +474,7 @@ export default function ReflectionsPage() {
               <p><WordSplit text="If there is a layer 7, I suspect it won't be a new technology. " /><Phrase text="It will be a new relationship between the system and its own models —" section="evolution" /><WordSplit text=" a kind of collective metacognition we don't have a name for yet." /></p>
             </div>
           </div>
+          <EvoBranchDiagram />
         </div>
       </section>
 
@@ -545,7 +511,6 @@ export default function ReflectionsPage() {
       <section id="religion" className={styles["cin-section"]}>
         <span className={styles["section-index"]}>04</span>
         <div className={styles["cin-layout"]}>
-          <BeliefMap />
           <div className={styles["cin-text-col"]}>
             <CuriosityLine text="Why does every culture ask the same questions?" />
             <div className={styles["cin-header"]}>
@@ -569,6 +534,7 @@ export default function ReflectionsPage() {
               </div>
             </div>
           </div>
+          <BeliefMap />
         </div>
       </section>
 
@@ -652,6 +618,16 @@ export default function ReflectionsPage() {
                     <div className={styles["sysview-term"]}>{row.term}</div>
                     <div className={styles["sysview-sub"]}>{row.sub}</div>
                   </div>
+                  {i < 6 && (
+                    <svg className={styles["sysview-pulse"]} width="16" height="16" viewBox="0 0 16 16">
+                      <circle cx="8" cy="8" r="2.5" fill="#45d291" opacity="0">
+                        <animate attributeName="opacity" values="0;0.8;0" dur="2.4s"
+                          begin={`${i * 0.34}s`} repeatCount="indefinite"/>
+                        <animate attributeName="r" values="2.5;4;2.5" dur="2.4s"
+                          begin={`${i * 0.34}s`} repeatCount="indefinite"/>
+                      </circle>
+                    </svg>
+                  )}
                 </div>
               ))}
             </div>
