@@ -16,14 +16,60 @@ function lcg(s0:number){ let s=s0|0; return ()=>{ s=(Math.imul(s,1664525)+101390
 function rS(b:number,n:number):[number,number][]{ const s:[number,number][]=[];for(let i=0;i<n;i++)s.push([b+i,b+(i+1)%n]);return s; }
 function cS(f:number,t:number):[number,number][]{ const s:[number,number][]=[];for(let i=f;i<t;i++)s.push([i,i+1]);return s; }
 function triStrip(a:number,b:number,n:number):Tri[]{ const t:Tri[]=[];for(let i=0;i<n;i++){const j=(i+1)%n;t.push({a:a+i,b:b+i,c:a+j},{a:b+i,b:b+j,c:a+j});}return t; }
+
+// ── Nebula cloud layer — soft blue/indigo drifting patches like the reference image ──
+interface NebulaBlob { x:number; y:number; rx:number; ry:number; alpha:number; hue:number; driftX:number; driftY:number; }
+const NEBULA_BLOBS:NebulaBlob[] = (()=>{
+  const r=lcg(42);
+  return Array.from({length:14},(_,i)=>({
+    x:        r(),
+    y:        0.15 + r()*0.70,
+    rx:       0.18 + r()*0.32,
+    ry:       0.08 + r()*0.18,
+    alpha:    0.022 + r()*0.038,
+    hue:      200 + r()*40,   // 200–240: blue → indigo
+    driftX:   (r()-0.5)*0.000018,
+    driftY:   (r()-0.5)*0.000008,
+  }));
+})();
+
+function drawNebula(ctx:CanvasRenderingContext2D, w:number, h:number, elapsed:number){
+  ctx.save();
+  for(let i=0;i<NEBULA_BLOBS.length;i++){
+    const b=NEBULA_BLOBS[i];
+    // Slow drift over time
+    const bx=(b.x + b.driftX*elapsed*1000)%1.0;
+    const by=(b.y + b.driftY*elapsed*1000)%1.0;
+    // Gentle breathe
+    const breathe=1 + Math.sin(elapsed*0.09 + i*1.3)*0.12;
+    const rx=b.rx*w*breathe, ry=b.ry*h*breathe;
+    const grd=ctx.createRadialGradient(bx*w,by*h,0,bx*w,by*h,Math.max(rx,ry));
+    grd.addColorStop(0,   `hsla(${b.hue},80%,38%,${b.alpha})`);
+    grd.addColorStop(0.35,`hsla(${b.hue},70%,28%,${b.alpha*0.55})`);
+    grd.addColorStop(0.70,`hsla(${b.hue},60%,18%,${b.alpha*0.18})`);
+    grd.addColorStop(1,   `hsla(${b.hue},50%,10%,0)`);
+    ctx.fillStyle=grd;
+    ctx.beginPath();
+    ctx.ellipse(bx*w, by*h, rx, ry, i*0.4, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
 function fibSphere(n:number,rad:number,rng:()=>number):V3[]{
   const pts:V3[]=[];const g=Math.PI*(3-Math.sqrt(5));
   for(let i=0;i<n;i++){const y=1-(i/(n-1))*2,r2=Math.sqrt(1-y*y),th=g*i;pts.push({x:rad*r2*Math.cos(th)+(rng()-0.5)*0.008,y:rad*y+(rng()-0.5)*0.008,z:rad*r2*Math.sin(th)+(rng()-0.5)*0.008});}
   return pts;
 }
 function pad(pts:V3[],seed:number):V3[]{
+  // Polar spread so fill-points cover the full viewport like the galaxy scene.
+  // sqrt(r) = uniform-area distribution; radius reaches 2.6 to match galaxy/starfield.
   const r=lcg(seed+9999);const out=[...pts];
-  while(out.length<SHAPE_N)out.push({x:(r()-0.5)*1.6,y:(r()-0.5)*1.2,z:(r()-0.5)*0.7});
+  while(out.length<SHAPE_N){
+    const ang=r()*Math.PI*2;
+    const rad=0.08+Math.sqrt(r())*2.55;
+    const vy=(r()-0.5)*1.10;
+    out.push({x:rad*Math.cos(ang),y:vy,z:rad*Math.sin(ang)});
+  }
   return out.slice(0,SHAPE_N);
 }
 // Build tube along centers array, appending pts/tris/segs in place
@@ -298,17 +344,17 @@ function buildConnectome():Scene{
   }
 
   // Brain neural mesh — scattered inside head ellipse
-  const BN=220,brainBase=pts.length;
+  const BN=130,brainBase=pts.length;
   for(let i=0;i<BN;i++){
     const ang=r()*Math.PI*2,d=Math.pow(r(),0.5)*0.38;
     pts.push({x:HRX*0.82*d*Math.cos(ang)+(r()-0.5)*0.012,y:TY(),z:HRZ*0.78*d*Math.sin(ang)*0.85+(r()-0.5)*0.012});
   }
-  // Short neural connections
+  // Short neural connections — tighter threshold keeps visual but cuts seg count
   for(let i=0;i<BN;i++){
     for(let j=i+1;j<BN;j++){
       const pi=pts[brainBase+i],pj=pts[brainBase+j];
       const d2=(pi.x-pj.x)**2+(pi.z-pj.z)**2;
-      if(d2<0.014&&d2>0.001){segs.push([brainBase+i,brainBase+j]);if(d2<0.007)tris.push({a:brainBase+i,b:brainBase+j,c:brainBase+(i+7)%BN});}
+      if(d2<0.009&&d2>0.001){segs.push([brainBase+i,brainBase+j]);if(d2<0.005)tris.push({a:brainBase+i,b:brainBase+j,c:brainBase+(i+7)%BN});}
     }
   }
 
@@ -422,7 +468,6 @@ SCENES.forEach(sc=>{sc.tris=sc.tris.filter(t=>t.a<SHAPE_N&&t.b<SHAPE_N&&t.c<SHAP
 
 // ═══════════ SOLAR SYSTEM — centered, 9 planets ═══════════
 const _sRng=lcg(333);
-const STAR_GLINTS=Array.from({length:28},()=>({fx:0.04+_sRng()*0.92,fy:0.04+_sRng()*0.92,sz:5+_sRng()*20,pulse:_sRng()*Math.PI*2}));
 
 // 9 planets: Mercury→Pluto. sz = base px at 1440px wide screen
 const SS_PLANETS=[
@@ -443,23 +488,6 @@ const JUP_BANDS:[[number,number,number],[number,number,number],[number,number,nu
 const SAT_BANDS:[[number,number,number],[number,number,number],[number,number,number]]=[
   [232,215,168],[198,178,130],[245,228,188]
 ];
-
-function drawStarGlint(ctx:CanvasRenderingContext2D,x:number,y:number,sz:number,alpha:number){
-  const spikes=[[sz,0],[sz*0.42,Math.PI/4],[sz,Math.PI/2],[sz*0.42,Math.PI*3/4],
-                [sz,Math.PI],[sz*0.42,Math.PI*5/4],[sz,Math.PI*3/2],[sz*0.42,Math.PI*7/4]];
-  spikes.forEach(([len,ang],i)=>{
-    const lw=i%2===0?1.2:0.7, op=i%2===0?alpha:alpha*0.50;
-    const g=ctx.createLinearGradient(x,y,x+Math.cos(ang)*len,y+Math.sin(ang)*len);
-    g.addColorStop(0,`rgba(255,255,255,${op.toFixed(3)})`);
-    g.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(ang)*len,y+Math.sin(ang)*len);
-    ctx.strokeStyle=g;ctx.lineWidth=lw;ctx.stroke();
-  });
-  const cg=ctx.createRadialGradient(x,y,0,x,y,sz*0.35);
-  cg.addColorStop(0,`rgba(255,255,255,${alpha.toFixed(3)})`);
-  cg.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.beginPath();ctx.arc(x,y,sz*0.35,0,Math.PI*2);ctx.fillStyle=cg;ctx.fill();
-}
 
 function drawPlanet(
   ctx:CanvasRenderingContext2D,px:number,py:number,pr:number,
@@ -518,14 +546,7 @@ function drawSolarSystem(ctx:CanvasRenderingContext2D,w:number,h:number,elapsed:
            sunY+a*Math.cos(th)*sinT + b*Math.sin(th)*cosT];
   };
 
-  // ── 1. Star glints (background) ──
-  STAR_GLINTS.forEach(sg=>{
-    const gx=sg.fx*w, gy=sg.fy*h;
-    const pulse=0.55+0.45*Math.sin(elapsed*1.6+sg.pulse);
-    drawStarGlint(ctx,gx,gy,sg.sz*pulse,alpha*0.70);
-  });
-
-  // ── 2. Orbit lines — clear, slightly glowing ──
+  // ── 1. Orbit lines — clear, slightly glowing ──
   SS_PLANETS.forEach((p,pi)=>{
     const a=Math.max(0.1, p.of*maxOrb), b=Math.max(0.1, a*FLAT);
     if(a<1) return; // skip if collapsed too small
@@ -675,7 +696,7 @@ function drawMesh(ctx:CanvasRenderingContext2D,scA:Scene,scB:Scene,morphT:number
   const R=(rA+(rB-rA)*eased+0.5)|0,G=(gA+(gB-gA)*eased+0.5)|0,B2=(bA+(bB-bA)*eased+0.5)|0;
 
   const drawTris=(tris:Tri[],alpha:number)=>{
-    if(alpha<0.012||!tris.length) return;
+    if(alpha<0.06||!tris.length) return;
     // Reset pooled paths (lazy-inited, SSR-safe)
     const tp=getTriPaths();
     for(let k=0;k<BUCKETS;k++) tp[k]=new Path2D();
@@ -694,14 +715,14 @@ function drawMesh(ctx:CanvasRenderingContext2D,scA:Scene,scB:Scene,morphT:number
     }
   };
   // Skip triangle fill during morph — segs+dots still render. Saves ~60% draw cost.
-  const inTransition=morphT>0.015&&morphT<0.985;
+  const inTransition=morphT>0.04&&morphT<0.96;
   if(!inTransition){
     if(aA>0.012) drawTris(scA.tris,aA);
     if(aB>0.012) drawTris(scB.tris,aB);
   }
 
   const drawSegs=(segs:[number,number][],alpha:number)=>{
-    if(alpha<0.012||!segs.length) return;
+    if(alpha<0.06||!segs.length) return;
     ctx.beginPath();ctx.strokeStyle=`rgba(${R},${G},${B2},${(alpha*0.46).toFixed(3)})`;ctx.lineWidth=0.48;
     for(let k=0;k<segs.length;k++){const[a,b2]=segs[k];ctx.moveTo(proj[a*3],proj[a*3+1]);ctx.lineTo(proj[b2*3],proj[b2*3+1]);}
     ctx.stroke();
@@ -709,17 +730,18 @@ function drawMesh(ctx:CanvasRenderingContext2D,scA:Scene,scB:Scene,morphT:number
   if(aA>0.012) drawSegs(scA.segs,aA);
   if(aB>0.012) drawSegs(scB.segs,aB);
 
-  // Dots — always full alpha, no fading
-  ctx.fillStyle=`rgba(${R},${G},${B2},0.10)`;
+  // Dots — depth-scaled size. Outer fill points are smaller but still visible.
+  ctx.fillStyle=`rgba(${R},${G},${B2},0.13)`;
   for(let i=0;i<TOTAL_N;i+=3){
     const sx=proj[i*3],sy=proj[i*3+1],d=proj[i*3+2];
-    const sz=clamp(0.9+(d+1.2)*0.55,0.9,2.4);
+    const sz=clamp(0.8+(d+1.2)*0.50,0.8,2.2);
     ctx.fillRect(sx-sz,sy-sz,sz*2,sz*2);
   }
-  ctx.fillStyle='rgba(220,238,255,0.82)';
+  // Bright star points — white-blue, varying size, occasional large glow stars
   for(let i=0;i<TOTAL_N;i+=2){
     const sx=proj[i*3],sy=proj[i*3+1],d=proj[i*3+2];
-    const sz=clamp(0.28+(d+1.2)*0.22,0.28,0.9);
+    const sz=clamp(0.22+(d+1.2)*0.20,0.22,0.85);
+    ctx.fillStyle='rgba(220,238,255,0.82)';
     ctx.fillRect(sx-sz,sy-sz,sz*2,sz*2);
   }
 }
@@ -737,7 +759,7 @@ export default function GlobalBackground(){
     let scrollSection=0;   // hard-snap integer — which section the user is IN right now
     let lastFrame=0;
 
-    const buildBG=()=>{bgGrad=ctx.createRadialGradient(w*0.42,h*0.44,0,w*0.5,h*0.5,Math.max(w,h)*0.82);bgGrad.addColorStop(0,'#1a3d82');bgGrad.addColorStop(0.28,'#0e2558');bgGrad.addColorStop(0.60,'#061432');bgGrad.addColorStop(1.0,'#020810');};
+    const buildBG=()=>{bgGrad=ctx.createRadialGradient(w*0.42,h*0.44,0,w*0.5,h*0.5,Math.max(w,h)*0.82);bgGrad.addColorStop(0,'#03080f');bgGrad.addColorStop(0.30,'#02060b');bgGrad.addColorStop(0.65,'#010407');bgGrad.addColorStop(1.0,'#010203');};
     const resize=()=>{dpr=Math.min(window.devicePixelRatio||1,1.0);w=window.innerWidth;h=window.innerHeight;canvas.width=(w*dpr)|0;canvas.height=(h*dpr)|0;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.scale(dpr,dpr);buildBG();};
     resize();window.addEventListener('resize',resize,{passive:true});
     // Section offsets cached — scroll handler does zero DOM reads, zero reflow
@@ -801,24 +823,16 @@ export default function GlobalBackground(){
       const rotSpeed=ROT_SPEED_BASE*(1+scrollBoost);
       rotAccum+=rotSpeed*(dt/1000);
 
-      scrollSmooth+=(scrollRaw-scrollSmooth)*0.08;
+      scrollSmooth+=(scrollRaw-scrollSmooth)*0.12;
       const sp=clamp(scrollSmooth,0,0.9999),NS=SCENES.length,raw=sp*(NS-1);
       const fi=raw|0,ti=fi+1<NS?fi+1:NS-1;
       const tRaw=raw-fi; // 0..1 progress through current section
 
-      // ── Pure positional morph: no alpha, no fade, dots always fully visible ──
-      // 0→25%  of section: held at sceneA (morphT=0)
-      // 25→75% of section: dots move from sceneA → sceneB positions
-      // 75→100% of section: held at sceneB (morphT=1)
-      const ease=(t:number)=>t<0.5?2*t*t:(4-2*t)*t-1;
-      let morphT:number;
-      if(tRaw<0.25){
-        morphT=0;
-      } else if(tRaw<0.75){
-        morphT=ease((tRaw-0.25)/0.50);
-      } else {
-        morphT=1;
-      }
+      // ── Smooth full-section morph — quintic ease across entire tRaw 0→1 ──
+      // No frozen hold regions; background continuously and smoothly transitions.
+      // Quintic (smootherstep): starts slow, accelerates, decelerates — zero jerk at ends.
+      const morphT = tRaw < 0 ? 0 : tRaw > 1 ? 1
+        : tRaw * tRaw * tRaw * (tRaw * (tRaw * 6 - 15) + 10);
       const scA=SCENES[fi],scB=SCENES[ti];
       const tilt=lerp(scA.tilt,scB.tilt,morphT),rotY=rotAccum;
       const cY=Math.cos(rotY),sY=Math.sin(rotY),cT=Math.cos(tilt),sT=Math.sin(tilt);
@@ -838,8 +852,9 @@ export default function GlobalBackground(){
         proj[idx*3]=cx2+rx*half*d;proj[idx*3+1]=cy2+ry2*half*d;proj[idx*3+2]=rz2;
       }
 
-      if(bgGrad)ctx.fillStyle=bgGrad;else ctx.fillStyle='#060e22';
+      if(bgGrad)ctx.fillStyle=bgGrad;else ctx.fillStyle='#020609';
       ctx.fillRect(0,0,w,h);
+      drawNebula(ctx,w,h,elapsed);
       drawMesh(ctx,scA,scB,morphT,proj);
 
       // ── Overlays: use scrollSection (hard snap) not smoothed fi ──
