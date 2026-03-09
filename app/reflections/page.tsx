@@ -668,51 +668,81 @@ export default function ReflectionsPage() {
       {/* content-wrap: mask fades text at top/bottom. Canvas at z:0 sits outside, always clear. */}
       <div className={styles["content-wrap"]}>
       <section id="hero" className={`${styles["cin-section"]} ${styles.hero}`}>
-        <div className={styles["cin-hero-inner"]}>
+        <div className={styles["cin-hero-split"]}>
 
-          <div className={styles["hero-portrait-wrap"]} data-hero-portrait>
-            <div className={styles["hero-portrait-frame"]}>
-              <Image src="/images/naveen-portrait.png" alt="Naveen" fill priority
-                sizes="(max-width:900px) 40vw, 200px"
-                style={{ objectFit:"cover", filter:"grayscale(100%) brightness(0.72)" }}/>
-              <div className={styles["hero-portrait-vignette"]} />
+          {/* ── LEFT — original intro text + personal details mixed ── */}
+          <div className={styles["hero-text-side"]}>
+
+            <span data-anim="hero-label" className={styles["hero-eyebrow"]}>
+              Thinking out loud
+            </span>
+
+            <h1 data-anim="hero-title" className={styles["hero-title"]}>
+              Reflections
+            </h1>
+
+            <div className={styles["hero-rule"]} />
+
+            {/* Identity line — natural, not a label */}
+            <p className={styles["hero-who"]}>
+              <span className={styles["hero-who-name"]}>human reflections by Naveen</span>
+              <span className={styles["hero-who-sep"]}>—</span>
+              <span className={styles["hero-who-role"]}>engineering systems and exploring the science of how they behave</span>
+            </p>
+
+            <div data-anim="body" className={`${styles["word-block"]} ${styles["hero-body"]}`}>
+              <p>
+                <WordSplit text="Some questions just won't leave me alone. Where does life actually come from? What is my brain doing right now? Why do all of us — across every culture — keep reaching for the same big answers? I don't have the answers. But I can't stop thinking about them either." />
+              </p>
+              <p>
+                <WordSplit text="This space reflects a personal curiosity — about how systems work, how things are formed, and the deeper questions surrounding life and existence. This isn't a textbook. It's more like — what if we just sat with the hard questions for a while? What if not knowing was okay, and the asking was the point?" />
+              </p>
+              <p>
+                <WordSplit text="I work in engineering, so I like thinking in systems. But some systems are so big and strange that you can't really solve them — you can only try to see them a little more clearly." />
+              </p>
             </div>
-          </div>
 
-          <div className={styles["cin-hero-text"]}>
-            <span data-anim="hero-label" className={styles["section-label"]}>Thinking out loud</span>
-            <h1 className={`${styles["hero-title"]} ${styles["hero-title-anim"]}`}>Human<br />Reflections</h1>
-            <div className={styles["gold-line"]} style={{marginBottom:"22px"}} />
-
-            <div className={`${styles["word-block"]} ${styles["hero-body"]}`}>
-              <p>
-                <WordSplit text="Hey, I'm Naveen. Some questions just won't leave me alone. Where does life actually come from? What is my brain doing right now? Why do all of us — across every culture — keep reaching for the same big answers? I don't have the answers. But I can't stop thinking about them either." />
-              </p>
-              <p>
-                <WordSplit text="This isn't a textbook. It's more like — what if we just sat with the hard questions for a while? What if not knowing was okay, and the asking was the point?" />
-              </p>
-              <p>
-                <WordSplit text="I work in engineering, so I like thinking in systems. But some systems are so big and strange that you can't really solve them — you can only try to see them a little more clearly." className={styles.highlight} />
-              </p>
-            </div>
+            <blockquote data-anim="hero-quote" className={styles["hero-quote"]}>
+              "Most things become clear when you stop accepting them as they are and start asking why."
+            </blockquote>
 
             <div className={styles["hero-meta"]} data-anim="hero-meta">
-              <div className={`${styles["hero-meta-item"]} ${styles["hero-meta-anim"]}`}>
+              <div className={styles["hero-meta-item"]}>
                 <span className={styles["hero-meta-label"]}>Location</span>
                 <span className={styles["hero-meta-value"]}>Earth</span>
               </div>
-              <div className={`${styles["hero-meta-dot"]} ${styles["hero-meta-anim"]}`} />
-              <div className={`${styles["hero-meta-item"]} ${styles["hero-meta-anim"]}`}>
+              <div className={styles["hero-meta-dot"]} />
+              <div className={styles["hero-meta-item"]}>
                 <span className={styles["hero-meta-label"]}>Time</span>
                 <span className={styles["hero-meta-value"]}>~13.8B years post-origin</span>
               </div>
-              <div className={`${styles["hero-meta-dot"]} ${styles["hero-meta-anim"]}`} />
-              <div className={`${styles["hero-meta-item"]} ${styles["hero-meta-anim"]}`}>
+              <div className={styles["hero-meta-dot"]} />
+              <div className={styles["hero-meta-item"]}>
                 <span className={styles["hero-meta-label"]}>Mode</span>
                 <span className={styles["hero-meta-value"]}>Observing</span>
               </div>
             </div>
+
           </div>
+
+          {/* ── RIGHT — portrait blended, thoughts floating ── */}
+          <div className={styles["hero-portrait-side"]}>
+            <div className={styles["hero-portrait-frame"]}>
+              <Image src="/images/naveen-portrait.png" alt="Naveen Chaganti" fill priority
+                sizes="520px"
+                style={{ objectFit:"cover", objectPosition:"center 15%",
+                  filter:"grayscale(100%) brightness(0.52) contrast(0.88)" }}/>
+              <div className={styles["hero-portrait-blend"]} />
+            </div>
+
+            <div className={styles["hero-float-notes"]}>
+              <span className={`${styles["hfn"]} ${styles["hfn-1"]}`}>how does matter become mind?</span>
+              <span className={`${styles["hfn"]} ${styles["hfn-2"]}`}>why does anything exist at all</span>
+              <span className={`${styles["hfn"]} ${styles["hfn-3"]}`}>the observer & the observed</span>
+              <span className={`${styles["hfn"]} ${styles["hfn-4"]}`}>systems all the way down</span>
+            </div>
+          </div>
+
         </div>
 
         <div className={styles["scroll-indicator"]}>

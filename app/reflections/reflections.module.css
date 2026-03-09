@@ -1535,7 +1535,7 @@
 
 /* ── 1 · Dark page base ────────────────────────────────────────── */
 :global(body) {
-  background: #02060b;
+  background: #070f1e;
 }
 
 /* ── 2 · Override all CSS variables at root — fixes every var() ── */
@@ -4454,3 +4454,395 @@
 .page-epigram-text  { color: rgba(190, 215, 248, 0.72) !important; }
 .page-signature     { color: rgba(170, 205, 248, 0.75) !important; }
 .page-signature-sub { color: rgba(140, 175, 220, 0.55) !important; }
+
+
+/* ════════════════════════════════════════════════════════════════════
+   HERO PORTRAIT — atmospheric, dissolves into background
+════════════════════════════════════════════════════════════════════ */
+.hero-portrait-wrap {
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 52% !important;
+  height: 100% !important;
+  flex: none !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  overflow: hidden !important;
+}
+
+.hero-portrait-wrap img {
+  object-position: center 15% !important;
+}
+
+.hero-portrait-vignette {
+  position: absolute !important;
+  inset: 0 !important;
+  background:
+    linear-gradient(to right,  #070f1e 0%, #070f1e18 38%, transparent 65%),
+    linear-gradient(to bottom, #070f1e 0%, transparent 18%, transparent 72%, #070f1e 100%),
+    linear-gradient(to left,   #070f1e 0%, transparent 30%) !important;
+  pointer-events: none !important;
+}
+
+.cin-hero-inner {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.cin-hero-text {
+  position: relative !important;
+  z-index: 2 !important;
+  max-width: 600px !important;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   HERO ANNOTATIONS — floating margin notes over portrait
+════════════════════════════════════════════════════════════════════ */
+.hero-annotations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.hero-note {
+  position: absolute;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  opacity: 0;
+  animation: noteFloat 0.7s ease forwards;
+}
+
+.hero-note-mark {
+  font-family: "Georgia", serif;
+  font-size: 11px;
+  color: rgba(120, 175, 230, 0.55);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.hero-note-text {
+  font-family: "Georgia", serif;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(170, 205, 248, 0.48);
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* Individual note positions — scattered naturally over portrait */
+.hero-note-1 { top: 14%;  right: 28%; animation-delay: 0.8s;  }
+.hero-note-2 { top: 28%;  right: 8%;  animation-delay: 1.2s;  transform: rotate(-1.5deg); }
+.hero-note-3 { top: 52%;  right: 18%; animation-delay: 1.6s;  transform: rotate(1deg);   }
+.hero-note-4 { top: 66%;  right: 32%; animation-delay: 2.0s;  transform: rotate(-0.8deg);}
+.hero-note-5 { top: 38%;  right: 6%;  animation-delay: 2.4s;  transform: rotate(1.2deg); }
+.hero-note-6 { top: 78%;  right: 22%; animation-delay: 2.8s;  transform: rotate(-1deg);  }
+
+/* Faint connecting thread lines between some notes */
+.hero-note-1::after,
+.hero-note-3::after {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: 50%;
+  width: 14px;
+  height: 1px;
+  background: rgba(100, 155, 210, 0.22);
+}
+
+@keyframes noteFloat {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Preserve rotation on notes that have it */
+.hero-note-2 { animation-name: noteFloat2; }
+.hero-note-3 { animation-name: noteFloat3; }
+.hero-note-4 { animation-name: noteFloat4; }
+.hero-note-5 { animation-name: noteFloat5; }
+.hero-note-6 { animation-name: noteFloat6; }
+
+@keyframes noteFloat2 {
+  from { opacity: 0; transform: translateY(8px) rotate(-1.5deg); }
+  to   { opacity: 1; transform: translateY(0)   rotate(-1.5deg); }
+}
+@keyframes noteFloat3 {
+  from { opacity: 0; transform: translateY(8px) rotate(1deg); }
+  to   { opacity: 1; transform: translateY(0)   rotate(1deg); }
+}
+@keyframes noteFloat4 {
+  from { opacity: 0; transform: translateY(8px) rotate(-0.8deg); }
+  to   { opacity: 1; transform: translateY(0)   rotate(-0.8deg); }
+}
+@keyframes noteFloat5 {
+  from { opacity: 0; transform: translateY(8px) rotate(1.2deg); }
+  to   { opacity: 1; transform: translateY(0)   rotate(1.2deg); }
+}
+@keyframes noteFloat6 {
+  from { opacity: 0; transform: translateY(8px) rotate(-1deg); }
+  to   { opacity: 1; transform: translateY(0)   rotate(-1deg); }
+}
+
+/* Very faint bracket/underline accent on some notes */
+.hero-note-2 .hero-note-text,
+.hero-note-5 .hero-note-text {
+  border-bottom: 1px solid rgba(100, 155, 210, 0.18);
+  padding-bottom: 1px;
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   HERO ANNOTATIONS FIX — outside overflow:hidden, fill-mode fixed
+════════════════════════════════════════════════════════════════════ */
+.hero-annotations {
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 52% !important;
+  height: 100% !important;
+  pointer-events: none !important;
+  z-index: 4 !important;
+  overflow: visible !important;
+}
+
+.hero-note {
+  position: absolute !important;
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  opacity: 0 !important;
+  animation-duration: 0.8s !important;
+  animation-timing-function: ease !important;
+  animation-fill-mode: forwards !important;
+}
+
+.hero-note-1 { top: 12%;  left: 10%; animation-name: noteFloat  !important; animation-delay: 1.0s !important; }
+.hero-note-2 { top: 27%;  left: 38%; animation-name: noteFloat2 !important; animation-delay: 1.5s !important; }
+.hero-note-3 { top: 45%;  left: 8%;  animation-name: noteFloat3 !important; animation-delay: 2.0s !important; }
+.hero-note-4 { top: 60%;  left: 42%; animation-name: noteFloat4 !important; animation-delay: 2.4s !important; }
+.hero-note-5 { top: 35%;  left: 22%; animation-name: noteFloat5 !important; animation-delay: 2.8s !important; }
+.hero-note-6 { top: 76%;  left: 14%; animation-name: noteFloat6 !important; animation-delay: 3.2s !important; }
+
+
+/* ════════════════════════════════════════════════════════════════════
+   HERO REDESIGN — split layout, personal + philosophical
+════════════════════════════════════════════════════════════════════ */
+
+/* Outer split container */
+.cin-hero-split {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 64px;
+  min-height: 80vh;
+  position: relative;
+}
+
+/* ── LEFT: text side ── */
+.hero-text-side {
+  flex: 0 0 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  padding-right: 64px;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(126, 196, 240, 0.60);
+  font-family: sans-serif;
+}
+
+.hero-title {
+  font-family: "Georgia", serif !important;
+  font-size: clamp(42px, 5.5vw, 72px) !important;
+  font-weight: 300 !important;
+  line-height: 1.06 !important;
+  letter-spacing: -0.02em !important;
+  color: #eef2ff !important;
+  margin: 0 !important;
+}
+
+.hero-rule {
+  width: 48px;
+  height: 1px;
+  background: linear-gradient(to right, rgba(126,196,240,0.7), transparent);
+}
+
+.hero-role {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: rgba(170, 205, 248, 0.72);
+  font-family: sans-serif;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.hero-intro {
+  font-size: clamp(14px, 1.4vw, 16px);
+  line-height: 1.80;
+  color: rgba(200, 220, 252, 0.78);
+  font-family: sans-serif;
+  margin: 0;
+  max-width: 460px;
+}
+
+.hero-quote {
+  font-family: "Georgia", serif;
+  font-size: clamp(13px, 1.3vw, 15px);
+  font-style: italic;
+  color: rgba(190, 215, 255, 0.60);
+  border-left: 2px solid rgba(126, 196, 240, 0.35);
+  padding-left: 18px;
+  margin: 4px 0 0;
+  line-height: 1.65;
+}
+
+.hero-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.hero-tag {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(126, 196, 240, 0.45);
+  border: 1px solid rgba(126, 196, 240, 0.18);
+  border-radius: 2px;
+  padding: 4px 10px;
+  font-family: sans-serif;
+}
+
+/* ── RIGHT: portrait side ── */
+.hero-portrait-side {
+  flex: 0 0 50%;
+  position: relative;
+  overflow: visible;
+}
+
+.hero-portrait-frame {
+  position: absolute;
+  inset: -60px -64px -60px 0;
+  overflow: hidden;
+}
+
+.hero-portrait-frame img {
+  object-position: center 12% !important;
+}
+
+/* Blend edges — strong left fade into text, soft top/bottom/right */
+.hero-portrait-blend {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, #070f1e 0%, rgba(7,15,30,0.85) 22%, rgba(7,15,30,0.30) 55%, rgba(7,15,30,0.10) 100%),
+    linear-gradient(to bottom, #070f1e 0%, transparent 16%, transparent 78%, #070f1e 100%);
+  pointer-events: none;
+}
+
+/* ── Floating thought notes over portrait ── */
+.hero-float-notes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.hfn {
+  position: absolute;
+  font-family: "Georgia", serif;
+  font-style: italic;
+  font-size: 11px;
+  color: rgba(160, 200, 248, 0.38);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  opacity: 0;
+  animation: hfnIn 0.9s ease forwards;
+  animation-fill-mode: forwards;
+}
+
+.hfn-1 { top: 18%; left: 12%; animation-delay: 1.4s; transform: rotate(-1deg); }
+.hfn-2 { top: 36%; left: 28%; animation-delay: 2.0s; transform: rotate(0.8deg); }
+.hfn-3 { top: 56%; left: 10%; animation-delay: 2.6s; transform: rotate(-0.6deg); }
+.hfn-4 { top: 72%; left: 22%; animation-delay: 3.2s; transform: rotate(1deg); }
+
+@keyframes hfnIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Keep rotation on notes that have it */
+.hfn-1 { animation-name: hfnIn1; }
+.hfn-2 { animation-name: hfnIn2; }
+.hfn-3 { animation-name: hfnIn3; }
+.hfn-4 { animation-name: hfnIn4; }
+
+@keyframes hfnIn1 { from { opacity:0; transform:translateY(6px) rotate(-1deg);   } to { opacity:1; transform:translateY(0) rotate(-1deg);   } }
+@keyframes hfnIn2 { from { opacity:0; transform:translateY(6px) rotate(0.8deg);  } to { opacity:1; transform:translateY(0) rotate(0.8deg);  } }
+@keyframes hfnIn3 { from { opacity:0; transform:translateY(6px) rotate(-0.6deg); } to { opacity:1; transform:translateY(0) rotate(-0.6deg); } }
+@keyframes hfnIn4 { from { opacity:0; transform:translateY(6px) rotate(1deg);    } to { opacity:1; transform:translateY(0) rotate(1deg);    } }
+
+/* Mobile */
+@media (max-width: 900px) {
+  .cin-hero-split {
+    flex-direction: column;
+    padding: 0 24px;
+    min-height: auto;
+    gap: 0;
+  }
+  .hero-text-side {
+    flex: none;
+    padding-right: 0;
+    padding-top: 80px;
+    padding-bottom: 40px;
+    gap: 16px;
+  }
+  .hero-portrait-side {
+    flex: none;
+    height: 340px;
+  }
+  .hero-portrait-frame {
+    inset: 0;
+  }
+}
+
+
+/* ── Hero identity line — name + role, natural sentence ── */
+.hero-who {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+.hero-who-name {
+  font-family: "Georgia", serif;
+  font-size: 15px;
+  color: rgba(220, 235, 255, 0.92);
+  letter-spacing: 0.01em;
+}
+.hero-who-sep {
+  color: rgba(126, 196, 240, 0.40);
+  font-size: 13px;
+}
+.hero-who-role {
+  font-size: 13px;
+  color: rgba(160, 195, 240, 0.62);
+  font-style: italic;
+  font-family: "Georgia", serif;
+  line-height: 1.5;
+}
